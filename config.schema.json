@@ -1,0 +1,29 @@
+{
+  "pluginAlias": "SharkIQPlugin",
+  "pluginType": "platform",
+  "singular": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "email": {
+        "title": "SharkClean Account Email",
+        "type": "string",
+        "required": true
+      },
+      "password": {
+        "title": "SharkClean Account Password",
+        "type": "string",
+        "required": true
+      },
+      "vacuums": {
+        "title": "SharkClean Vacuum Devicess",
+        "type": "array",
+        "required": true,
+        "items": {
+          "title": "SharkClean Vacuum Serial Number",
+          "type": "string"
+        }
+      }
+    }
+  }
+}
