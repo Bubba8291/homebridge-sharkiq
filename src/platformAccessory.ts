@@ -29,7 +29,7 @@ export class SharkIQAccessory {
 
 
     this.service = this.accessory.getService('Vacuum') ||
-          this.accessory.addService(this.platform.Service.Fanv2, 'Vacuum', serial_number + '-vacuum');
+      this.accessory.addService(this.platform.Service.Fanv2, 'Vacuum', serial_number + '-vacuum');
 
     // Vacuum Name - Default is device name
     this.service.setCharacteristic(this.platform.Characteristic.Name, device._name.toString());
@@ -96,8 +96,8 @@ export class SharkIQAccessory {
         this.log.debug('Promise Rejected with operating mode update.');
       });
 
-    if(!vacuumDocked) {
-      if(this.isActive) {
+    if (!vacuumDocked) {
+      if (this.isActive) {
         await this.device.update(Properties.POWER_MODE)
           .catch(() => {
             this.log.debug('Promise Rejected with power mode update.');
@@ -115,10 +115,10 @@ export class SharkIQAccessory {
     }
 
     const mode = this.device.operating_mode();
-    if(mode === OperatingModes.START) {
+    if (mode === OperatingModes.START) {
       this.service.updateCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.ACTIVE);
       this.isActive = true;
-    } else if(mode === OperatingModes.STOP) {
+    } else if (mode === OperatingModes.STOP) {
       this.service.updateCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.ACTIVE);
       this.isActive = true;
     } else {
@@ -130,7 +130,7 @@ export class SharkIQAccessory {
 
   // Update paused state on switch
   updatePaused(mode: number) {
-    if(mode === OperatingModes.STOP) {
+    if (mode === OperatingModes.STOP) {
       this.vacuumPausedService.updateCharacteristic(this.platform.Characteristic.On, true);
     } else {
       this.vacuumPausedService.updateCharacteristic(this.platform.Characteristic.On, false);
@@ -142,7 +142,7 @@ export class SharkIQAccessory {
     this.platform.log.debug('Triggering GET Paused');
 
     const mode = this.device.operating_mode() === OperatingModes.STOP;
-    if(mode) {
+    if (mode) {
       return true;
     } else {
       return false;
@@ -153,8 +153,8 @@ export class SharkIQAccessory {
   async setPaused(value: CharacteristicValue) {
     this.platform.log.debug('Triggering SET Paused');
 
-    if(this.isActive) {
-      if(value) {
+    if (this.isActive) {
+      if (value) {
         await this.device.set_operating_mode(OperatingModes.STOP);
       } else {
         await this.device.set_operating_mode(OperatingModes.START);
@@ -183,8 +183,8 @@ export class SharkIQAccessory {
   async setVacuumActive(value: CharacteristicValue) {
     this.platform.log.debug('Triggering SET Vacuum Active');
 
-    if(!value) {
-      if(this.isActive) {
+    if (!value) {
+      if (this.isActive) {
         await this.setFanSpeed(0)
           .catch(() => {
             this.log.debug('Promise Rejected with setting fan speed.');
@@ -196,11 +196,11 @@ export class SharkIQAccessory {
   // Get vacuum power for UI
   async getFanSpeed() {
     const vacuumActive = this.isActive;
-    if(vacuumActive) {
+    if (vacuumActive) {
       const power_mode = this.device.get_property_value(Properties.POWER_MODE);
-      if(power_mode === PowerModes.MAX) {
+      if (power_mode === PowerModes.MAX) {
         return 90;
-      } else if(power_mode === PowerModes.ECO) {
+      } else if (power_mode === PowerModes.ECO) {
         return 30;
       } else {
         return 60;
@@ -212,11 +212,11 @@ export class SharkIQAccessory {
   // Set vacuum power from UI (and start/stop vacuum if needed)
   async setFanSpeed(value: CharacteristicValue) {
     let power_mode = PowerModes.NORMAL;
-    if(value === 30) {
+    if (value === 30) {
       power_mode = PowerModes.ECO;
-    } else if(value === 90) {
+    } else if (value === 90) {
       power_mode = PowerModes.MAX;
-    } else if(value === 0) {
+    } else if (value === 0) {
       this.isActive = false;
       this.service.updateCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.INACTIVE);
       this.vacuumPausedService.updateCharacteristic(this.platform.Characteristic.On, false);
@@ -226,14 +226,14 @@ export class SharkIQAccessory {
         });
       return;
     }
-    if(this.getPaused()) {
+    if (this.getPaused()) {
       await this.device.set_operating_mode(OperatingModes.START);
     }
     await this.device.set_property_value(Properties.POWER_MODE, power_mode)
       .catch(() => {
         this.log.debug('Promise Rejected with powermode update.');
       });
-    if(!this.isActive) {
+    if (!this.isActive) {
       this.isActive = true;
       this.service.updateCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.ACTIVE);
       await this.device.clean_rooms([])

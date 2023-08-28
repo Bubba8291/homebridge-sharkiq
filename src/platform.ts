@@ -30,14 +30,14 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
       const email = config.email;
       const password = config.password;
       const serialNumbers = config.vacuums;
-      if(!email || !password) {
+      if (!email || !password) {
         log.error('Login information must be present in config');
-      } else if(!serialNumbers) {
+      } else if (!serialNumbers) {
         log.error('List of your vacuum serial numbers you want to be added must be present in the config');
       }
       this.login(email, password).then((devices) => {
-        for(let i=0; i < devices.length; i++) {
-          if(serialNumbers.includes(devices[i]._vac_serial_number)) {
+        for (let i = 0; i < devices.length; i++) {
+          if (serialNumbers.includes(devices[i]._vac_serial_number)) {
             this.devices.push(devices[i]);
           }
         }
@@ -50,7 +50,7 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
   }
 
   // Attempt to login and fetch devices.
-  login = async(email: string, password: string) => {
+  login = async (email: string, password: string) => {
     const ayla_api = get_ayla_api(email, password, this.log);
     await ayla_api.sign_in()
       .catch(() => {
@@ -77,7 +77,7 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
 
       const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
 
-      if(existingAccessory) {
+      if (existingAccessory) {
         this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
 
         new SharkIQAccessory(this, existingAccessory, device, this.api.hap.uuid, this.log);
