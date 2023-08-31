@@ -1,10 +1,15 @@
 {
-  "pluginAlias": "SharkIQPlugin",
+  "pluginAlias": "SharkIQ",
   "pluginType": "platform",
   "singular": true,
   "schema": {
     "type": "object",
     "properties": {
+      "name": {
+        "type": "string",
+        "title": "Name",
+        "default": "SharkIQ"
+      },
       "email": {
         "title": "SharkClean Account Email",
         "type": "string",
@@ -20,10 +25,44 @@
         "type": "array",
         "required": true,
         "items": {
-          "title": "SharkClean Vacuum Serial Number",
           "type": "string"
         }
       }
     }
-  }
+  },
+  "layout": [
+    {
+      "type": "fieldset",
+      "title": "SharkIQ Account Info",
+      "expandable": true,
+      "expanded": false,
+      "items": [
+        "email",
+        "password"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "Vacuum Settings",
+      "expandable": true,
+      "expanded": false,
+      "items": [
+        {
+          "key": "vacuums",
+          "notitle": true,
+          "type": "tabarray",
+          "title": "{{ 'New Vacuum' }}",
+          "expandable": true,
+          "expanded": false,
+          "orderable": true,
+          "items": [
+            {
+              "key": "vacuums[]",
+              "title": "{{ value }}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }
