@@ -25,6 +25,7 @@
         "type": "array",
         "required": true,
         "items": {
+          "title": "SharkClean Vacuum Serial Number",
           "type": "string"
         }
       }
@@ -35,7 +36,7 @@
       "type": "fieldset",
       "title": "SharkIQ Account Info",
       "expandable": true,
-      "expanded": false,
+      "expanded": true,
       "items": [
         "email",
         "password"
@@ -45,7 +46,7 @@
       "type": "fieldset",
       "title": "Vacuum Settings",
       "expandable": true,
-      "expanded": false,
+      "expanded": true,
       "items": [
         {
           "key": "vacuums",
