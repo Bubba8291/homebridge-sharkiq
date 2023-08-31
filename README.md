@@ -44,6 +44,7 @@ The email and password is your Shark Clean account you used to setup the vacuum.
 - Be able to turn on and off the vacuum
 - Set the power mode of the vacuum and change it while running
 - Sensor for if the vacuum is docked or not
+    - The sensor will display as "opened" when the vacuum is docked and "closed" when the vacuum is not docked
 - Pause switch for pausing the vacuum while it's running
 
 ## Notes
