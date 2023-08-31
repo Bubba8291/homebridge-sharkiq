@@ -23,7 +23,8 @@
     "prepublishOnly": "npm run lint && npm run build"
   },
   "keywords": [
-    "homebridge-plugin"
+    "homebridge-plugin",
+    "sharkiq"
   ],
   "dependencies": {
     "xmlhttprequest-ts": "^1.0.1"

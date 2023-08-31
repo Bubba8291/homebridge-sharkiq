@@ -31,8 +31,39 @@
       }
     }
   },
-   "layout": [
-     "email",
-     "password"
-   ]
+  "layout": [
+    {
+      "type": "fieldset",
+      "title": "SharkIQ Account Info",
+      "expandable": true,
+      "expanded": true,
+      "items": [
+        "email",
+        "password"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "Vacuum Settings",
+      "expandable": true,
+      "expanded": true,
+      "items": [
+        {
+          "key": "vacuums",
+          "notitle": true,
+          "type": "tabarray",
+          "title": "{{ 'New Vacuum' }}",
+          "expandable": true,
+          "expanded": false,
+          "orderable": true,
+          "items": [
+            {
+              "key": "vacuums[]",
+              "title": "{{ value }}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }
