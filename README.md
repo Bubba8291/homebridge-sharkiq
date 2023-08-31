@@ -24,7 +24,7 @@ Configure Homebridge. The config file for SharkIQ should include:
     ...
     "platforms": [
         {
-            "name": "SharkIQPlugin",
+            "name": "SharkIQ",
             "platform": "SharkIQ",
             "email": "[Shark Clean Account Email]",
             "password": "[Shark Clean Account Password]",
