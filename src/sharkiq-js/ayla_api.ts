@@ -206,22 +206,28 @@ class AylaApi {
   }
 
   // Check if auth is valid and renew if expired.
-  check_auth(raise_expiring_soon = true) {
+  async check_auth(raise_expiring_soon = true) {
     if (!this._access_token || !this._is_authed || this.token_expired) {
       this._is_authed = false;
       this.log.error('Invalid username or password.');
       return false;
     } else {
       if (raise_expiring_soon && this.token_expiring_soon) {
-        this.refresh_auth();
+        try {
+          await this.refresh_auth();
+        } catch {
+          this.log.error('Unable to refresh auth token.');
+          return false;
+        }
       }
     }
     return true;
   }
 
   // Get auth header for requests
-  get auth_header() {
-    if (this.check_auth()) {
+  async auth_header() {
+    const check_auth = await this.check_auth();
+    if (check_auth) {
       return `auth_token ${this._access_token}`;
     } else {
       return '';
@@ -232,7 +238,8 @@ class AylaApi {
   async list_devices() {
     const url = `${this.europe ? global_vars.EU_DEVICE_URL : global_vars.DEVICE_URL}/apiv1/devices.json`;
     try {
-      const resp = await this.makeRequest('GET', url, null, this.auth_header);
+      const auth_header = await this.auth_header();
+      const resp = await this.makeRequest('GET', url, null, auth_header);
       const devices = JSON.parse(resp.response);
       if (resp.status === 401) {
         this.log.error('API Error: Unauthorized');

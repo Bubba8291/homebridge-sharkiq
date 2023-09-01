@@ -182,7 +182,8 @@ class SharkIqVacuum {
     const end_point = this.set_property_endpoint(`SET_${property_name}`);
     const data = { 'datapoint': { 'value': value } };
     try {
-      await this.ayla_api.makeRequest('POST', end_point, data, this.ayla_api.auth_header);
+      const auth_header = await this.ayla_api.auth_header();
+      await this.ayla_api.makeRequest('POST', end_point, data, auth_header);
       this.properties_full[property_name] = value;
     } catch {
       this.log.debug('Promise Rejected with setting property value.');
@@ -208,12 +209,14 @@ class SharkIqVacuum {
         for (let i = 0; i < property_list.length; i++) {
           const property = property_list[i];
           const params = { 'names': 'GET_' + property };
-          const resp = await this.ayla_api.makeRequest('GET', url + formatParams(params), null, this.ayla_api.auth_header);
+          const auth_header = await this.ayla_api.auth_header();
+          const resp = await this.ayla_api.makeRequest('GET', url + formatParams(params), null, auth_header);
           const properties = JSON.parse(resp.response);
           this._do_update(full_update, properties);
         }
       } else {
-        const resp = await this.ayla_api.makeRequest('GET', url, null, this.ayla_api.auth_header);
+        const auth_header = await this.ayla_api.auth_header();
+        const resp = await this.ayla_api.makeRequest('GET', url, null, auth_header);
         const properties = JSON.parse(resp.response);
         this._do_update(full_update, properties);
       }
