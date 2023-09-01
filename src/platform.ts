@@ -76,17 +76,18 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
       const uuid = this.api.hap.uuid.generate(device._vac_serial_number.toString());
 
       const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
+      const invertDockedStatus = this.config.invertDockedStatus || false;
 
       if (existingAccessory) {
         this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
 
-        new SharkIQAccessory(this, existingAccessory, device, this.api.hap.uuid, this.log);
+        new SharkIQAccessory(this, existingAccessory, device, this.api.hap.uuid, this.log, invertDockedStatus);
       } else {
         this.log.info('Adding new accessory:', device._dsn);
 
         const accessory = new this.api.platformAccessory(device._name.toString(), uuid);
 
-        new SharkIQAccessory(this, accessory, device, this.api.hap.uuid, this.log);
+        new SharkIQAccessory(this, accessory, device, this.api.hap.uuid, this.log, invertDockedStatus);
 
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       }

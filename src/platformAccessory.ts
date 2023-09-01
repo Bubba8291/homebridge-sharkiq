@@ -14,6 +14,7 @@ export class SharkIQAccessory {
     private device: SharkIqVacuum,
     private UUIDGen,
     private readonly log: Logger,
+    private readonly invertDockedStatus: boolean,
     private isActive = false,
   ) {
 
@@ -28,11 +29,13 @@ export class SharkIQAccessory {
       .setCharacteristic(this.platform.Characteristic.SerialNumber, serial_number);
 
 
+    const vacuumUUID = UUIDGen.generate(serial_number + '-vacuum');
     this.service = this.accessory.getService('Vacuum') ||
-      this.accessory.addService(this.platform.Service.Fanv2, 'Vacuum', serial_number + '-vacuum');
+      this.accessory.addService(this.platform.Service.Fanv2, 'Vacuum', vacuumUUID);
 
     // Vacuum Name - Default is device name
     this.service.setCharacteristic(this.platform.Characteristic.Name, device._name.toString());
+    this.service.setCharacteristic(this.platform.Characteristic.ConfiguredName, 'Vacuum');
 
     // Vacuum Active
     this.service.getCharacteristic(this.platform.Characteristic.Active)
@@ -76,7 +79,11 @@ export class SharkIQAccessory {
           this.log.debug('Promise Rejected with docked status update.');
         });
 
-      vacuumDocked = device.get_property_value(Properties.DOCKED_STATUS) === 1;
+      if(!invertDockedStatus) {
+        vacuumDocked = device.get_property_value(Properties.DOCKED_STATUS) === 1;
+      } else {
+        vacuumDocked = device.get_property_value(Properties.DOCKED_STATUS) !== 1;
+      }
       await this.updateItems(vacuumDocked)
         .catch(() => {
           this.log.debug('Promise Rejected with running docked update.');

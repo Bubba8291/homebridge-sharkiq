@@ -28,6 +28,12 @@
           "title": "SharkClean Vacuum Serial Number",
           "type": "string"
         }
+      },
+      "invertDockedStatus": {
+        "title": "Invert Vacuum Docked Status",
+        "type": "boolean",
+        "required": false,
+        "default": false
       }
     }
   },
