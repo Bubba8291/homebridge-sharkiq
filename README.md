@@ -19,9 +19,8 @@ Run `npm install -g homebridge-sharkiq`
 ### Step 2.
 
 Configure Homebridge. The config file for SharkIQ should include:
-```
+```json
 {
-    ...
     "platforms": [
         {
             "name": "SharkIQ",
@@ -30,7 +29,7 @@ Configure Homebridge. The config file for SharkIQ should include:
             "password": "[Shark Clean Account Password]",
             "vacuums": [
                 "[Shark Vacuum Serial Number]",
-                ...
+                "..."
             ],
             "invertDockedStatus": false,
         }

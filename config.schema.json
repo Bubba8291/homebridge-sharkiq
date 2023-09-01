@@ -69,7 +69,7 @@
           "items": [
             {
               "key": "vacuums[]",
-              "title": "{{ value }}"
+              "title": "{{ value || 'New Serial Number' }}"
             }
           ]
         },
