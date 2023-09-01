@@ -55,6 +55,10 @@
       "expanded": true,
       "items": [
         {
+          "type": "help",
+          "helpvalue": "<h5>Vacuums</h5><em class='primary-text'>Enter SharkClean Serial Number(s) you want to add to HomeKit.</em>"
+        },
+        {
           "key": "vacuums",
           "notitle": true,
           "type": "tabarray",
@@ -68,7 +72,8 @@
               "title": "{{ value }}"
             }
           ]
-        }
+        },
+        "invertDockedStatus"
       ]
     }
   ]

@@ -31,7 +31,8 @@ Configure Homebridge. The config file for SharkIQ should include:
             "vacuums": [
                 "[Shark Vacuum Serial Number]",
                 ...
-            ]
+            ],
+            "invertDockedStatus": false,
         }
     ]
 }
@@ -45,6 +46,7 @@ The email and password is your Shark Clean account you used to setup the vacuum.
 - Set the power mode of the vacuum and change it while running
 - Sensor for if the vacuum is docked or not
     - The sensor will display as "opened" when the vacuum is docked and "closed" when the vacuum is not docked
+    - Set `invertDockedStatus` to `true` to display as "closed" when the vacuum is docked and "opened" when the vacuum is not docked
 - Pause switch for pausing the vacuum while it's running
 
 ## Notes
