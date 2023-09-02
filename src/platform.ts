@@ -32,8 +32,10 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
       const serialNumbers = config.vacuums;
       if (!email || !password) {
         log.error('Login information must be present in config');
-      } else if (!serialNumbers) {
+        return;
+      } else if (!Array.isArray(serialNumbers) || serialNumbers.length === 0) {
         log.error('List of your vacuum serial numbers you want to be added must be present in the config');
+        return;
       }
       this.login(email, password).then((devices) => {
         for (let i = 0; i < devices.length; i++) {
@@ -43,8 +45,9 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
         }
         this.discoverDevices();
       })
-        .catch(() => {
-          log.error('Error with login. Please check logs');
+        .catch((error) => {
+          log.error('Error with login. Please check logs:');
+          log.error(error);
         });
     });
   }
