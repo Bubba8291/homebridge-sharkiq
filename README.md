@@ -31,7 +31,7 @@ Configure Homebridge. The config file for SharkIQ should include:
                 "[Shark Vacuum Serial Number]",
                 "..."
             ],
-            "invertDockedStatus": false,
+            "invertDockedStatus": false
         }
     ]
 }
