@@ -220,7 +220,6 @@ class SharkIqVacuum {
         const properties = JSON.parse(resp.response);
         this._do_update(full_update, properties);
       }
-      this.ayla_api.websession.responseText = '';
     } catch {
       this.log.debug('Promise Rejected with updating properties.');
     }

@@ -34,6 +34,12 @@
         "type": "boolean",
         "required": false,
         "default": false
+      },
+      "dockedUpdateInterval": {
+        "title": "Docked Update Interval",
+        "type": "integer",
+        "required": false,
+        "default": 5000
       }
     }
   },
@@ -73,7 +79,8 @@
             }
           ]
         },
-        "invertDockedStatus"
+        "invertDockedStatus",
+        "dockedUpdateInterval"
       ]
     }
   ]

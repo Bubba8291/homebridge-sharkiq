@@ -9,7 +9,7 @@
 
 A new homebridge plugin for SharkIQ Vacuums.
 
-Contribution would be very helpful as this plugin is still new and there are some small flaws here and there. I used the [sharkiq](https://github.com/JeffResc/sharkiq/) python module as a reference for creating the javascript wrapper to control SharkIQ Vacuums.
+Contribution would be very helpful as this plugin is still new and has some small flaws here and there. I used the [sharkiq](https://github.com/JeffResc/sharkiq/) python module as a reference for creating the javascript wrapper to control SharkIQ Vacuums.
 
 This plguin has only been tested on the `UR250BEXUS` model.
 
@@ -34,13 +34,16 @@ Configure Homebridge. The config file for SharkIQ should include:
                 "[Shark Vacuum Serial Number]",
                 "..."
             ],
-            "invertDockedStatus": false
+            "invertDockedStatus": false,
+            "dockedUpdateInterval": 5000
         }
     ]
 }
 ```
 
 The email and password is your Shark Clean account you used to setup the vacuum. The Vacuums array is a list of your vacuum's serial numbers. If you only have one vacuum, just include the one's serial number.
+
+The default interval between updating the docked status is 5 seconds (5000 ms). To change the docked status interval, add `dockedUpdateInterval` to your config. Value is in milliseconds.
 
 ## Features
 
@@ -53,7 +56,7 @@ The email and password is your Shark Clean account you used to setup the vacuum.
 
 ## Notes
 
-This plugin is still a little buggy at some times. Sometimes the vacuum won't refresh or set a control from Homebridge right away. But it usually does update the first time. If not the second time.
+~~This plugin is still a little buggy at some times. Sometimes the vacuum won't refresh or set a control from Homebridge right away. But it usually does update the first time. If not the second time.~~
 
 Contributions would be very helpful to help this Homebridge plugin stay maintained and up to date. If you have any problems, please create an issue.
 

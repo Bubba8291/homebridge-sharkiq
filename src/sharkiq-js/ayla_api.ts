@@ -1,4 +1,4 @@
-import { XMLHttpRequest } from 'xmlhttprequest-ts';
+import fetch from 'node-fetch';
 import { Logger } from 'homebridge';
 
 import { global_vars } from './const';
@@ -35,7 +35,6 @@ class AylaApi {
   _is_authed: boolean;
   _app_id: string;
   _app_secret: string;
-  websession: XMLHttpRequest;
   log: Logger;
   europe: boolean;
 
@@ -50,44 +49,39 @@ class AylaApi {
     this._is_authed = false;
     this._app_id = app_id;
     this._app_secret = app_secret;
-    this.websession = new XMLHttpRequest();
     this.log = log;
     this.europe = europe;
   }
 
   // Make API Request
-  makeRequest(method, url, data, auth_header): Promise<APIResponse> {
-    const websession = this.websession;
-    return new Promise((resolve, reject) => {
-      const xhr = websession;
-      xhr.open(method, url, true);
-      if (auth_header) {
-        xhr.setRequestHeader('Authorization', auth_header);
-      }
-      if (method === 'POST') {
-        xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
-      }
-      xhr.onload = function () {
-        if (this.status >= 200 && this.status < 300) {
-          resolve({
-            status: this.status,
-            response: xhr.responseText,
-          });
-        } else {
-          reject({
-            status: this.status,
-            response: xhr.statusText,
-          });
-        }
+  async makeRequest(method, url, data, auth_header): Promise<APIResponse> {
+    const reqData = {};
+    const headers = {};
+    reqData['method'] = method;
+    if(auth_header) {
+      headers['Authorization'] = auth_header;
+    }
+    if(method === 'POST') {
+      headers['Content-Type'] = 'application/json;charset=UTF-8';
+    }
+    if(data !== null) {
+      reqData['body'] = JSON.stringify(data);
+    }
+    reqData['headers'] = headers;
+    try {
+      const response = await fetch(url, reqData);
+      const statusCode = await response.status;
+      const responseText = await response.text();
+      return {
+        status: statusCode,
+        response: responseText,
       };
-      xhr.onerror = function () {
-        reject({
-          status: this.status,
-          response: xhr.statusText,
-        });
+    } catch {
+      return {
+        status: 500,
+        response: '',
       };
-      xhr.send(data !== null ? JSON.stringify(data) : null);
-    });
+    }
   }
 
   get _login_data() {

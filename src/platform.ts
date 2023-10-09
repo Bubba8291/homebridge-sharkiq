@@ -14,7 +14,7 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
   // this is used to track restored cached accessories
   public readonly accessories: PlatformAccessory[] = [];
   // Device vacuums object array
-  public devices: SharkIqVacuum[] = [];
+  public vacuumDevices: SharkIqVacuum[] = [];
 
   constructor(
     public readonly log: Logger,
@@ -40,7 +40,7 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
       this.login(email, password).then((devices) => {
         for (let i = 0; i < devices.length; i++) {
           if (serialNumbers.includes(devices[i]._vac_serial_number)) {
-            this.devices.push(devices[i]);
+            this.vacuumDevices.push(devices[i]);
           }
         }
         this.discoverDevices();
@@ -75,26 +75,41 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
 
   // Add vacuums to Homebridge.
   discoverDevices() {
-    this.devices.forEach(device => {
-      const uuid = this.api.hap.uuid.generate(device._vac_serial_number.toString());
+    const devices: PlatformAccessory[] = [];
+    const unusedDeviceAccessories = this.accessories;
 
-      const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
-      const invertDockedStatus = this.config.invertDockedStatus || false;
+    const invertDockedStatus = this.config.invertDockedStatus || false;
+    const dockedUpdateInterval = this.config.dockedUpdateInterval || 5000;
+    this.vacuumDevices.forEach(vacuumDevice => {
+      const uuid = this.api.hap.uuid.generate(vacuumDevice._vac_serial_number.toString());
+      let accessory = unusedDeviceAccessories.find(accessory => accessory.UUID === uuid);
 
-      if (existingAccessory) {
-        this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
-
-        new SharkIQAccessory(this, existingAccessory, device, this.api.hap.uuid, this.log, invertDockedStatus);
+      if(accessory) {
+        unusedDeviceAccessories.splice(unusedDeviceAccessories.indexOf(accessory), 1);
       } else {
-        this.log.info('Adding new accessory:', device._dsn);
-
-        const accessory = new this.api.platformAccessory(device._name.toString(), uuid);
-
-        new SharkIQAccessory(this, accessory, device, this.api.hap.uuid, this.log, invertDockedStatus);
-
-        this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+        accessory = new this.api.platformAccessory(vacuumDevice._name.toString(), uuid);
+        devices.push(accessory);
       }
+
+      let accessoryInformationService = accessory.getService(this.Service.AccessoryInformation);
+      if (!accessoryInformationService) {
+        accessoryInformationService = accessory.addService(this.Service.AccessoryInformation);
+      }
+      accessoryInformationService
+        .setCharacteristic(this.Characteristic.Manufacturer, 'Shark')
+        .setCharacteristic(this.Characteristic.Model, vacuumDevice._vac_model_number)
+        .setCharacteristic(this.Characteristic.SerialNumber, vacuumDevice._vac_serial_number);
+
+      new SharkIQAccessory(this, accessory, vacuumDevice, this.api.hap.uuid, this.log, invertDockedStatus, dockedUpdateInterval);
     });
 
+    this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, devices);
+
+    unusedDeviceAccessories.forEach(unusedDeviceAccessory => {
+      this.log.info('Removing unused accessory with name ' + unusedDeviceAccessory.displayName);
+      this.accessories.splice(this.accessories.indexOf(unusedDeviceAccessory), 1);
+    });
+
+    this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, unusedDeviceAccessories);
   }
 }

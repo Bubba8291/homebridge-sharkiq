@@ -15,19 +15,11 @@ export class SharkIQAccessory {
     private UUIDGen,
     private readonly log: Logger,
     private readonly invertDockedStatus: boolean,
-    private isActive = false,
+    private readonly dockedUpdateInterval: number,
   ) {
 
-    // Get device model and serial number
-    const model_number = device.vac_model_number;
+    // Get device serial number
     const serial_number = device._vac_serial_number;
-
-    // set accessory information
-    this.accessory.getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Shark')
-      .setCharacteristic(this.platform.Characteristic.Model, model_number)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, serial_number);
-
 
     const vacuumUUID = UUIDGen.generate(serial_number + '-vacuum');
     this.service = this.accessory.getService('Vacuum') ||
@@ -35,7 +27,6 @@ export class SharkIQAccessory {
 
     // Vacuum Name - Default is device name
     this.service.setCharacteristic(this.platform.Characteristic.Name, device._name.toString());
-    this.service.setCharacteristic(this.platform.Characteristic.ConfiguredName, 'Vacuum');
 
     // Vacuum Active
     this.service.getCharacteristic(this.platform.Characteristic.Active)
@@ -52,48 +43,66 @@ export class SharkIQAccessory {
       .onSet(this.setFanSpeed.bind(this))
       .onGet(this.getFanSpeed.bind(this));
 
-    const dockedUUID = UUIDGen.generate(serial_number + '-docked');
     // Vacuum Docked Status
     this.dockedStatusService = this.accessory.getService('Vacuum Docked') ||
-      this.accessory.addService(this.platform.Service.ContactSensor, 'Vacuum Docked', dockedUUID);
-    this.dockedStatusService.setCharacteristic(this.platform.Characteristic.ConfiguredName, 'Vacuum Docked');
+      this.accessory.addService(this.platform.Service.ContactSensor, 'Vacuum Docked', 'Docked');
+    this.dockedStatusService.setCharacteristic(this.platform.Characteristic.Name, device._name.toString() + ' Docked');
 
-    const pausedStatusUUID = UUIDGen.generate(serial_number + '-paused');
     // Vacuum Paused Status
     this.vacuumPausedService = this.accessory.getService('Vacuum Paused') ||
-      this.accessory.addService(this.platform.Service.Switch, 'Vacuum Paused', pausedStatusUUID);
-    this.vacuumPausedService.setCharacteristic(this.platform.Characteristic.ConfiguredName, 'Vacuum Paused');
+      this.accessory.addService(this.platform.Service.Switch, 'Vacuum Paused', 'Paused');
+    this.vacuumPausedService.setCharacteristic(this.platform.Characteristic.Name, device._name.toString() + ' Paused');
 
     // Vacuum Paused getting and setting state
     this.vacuumPausedService.getCharacteristic(this.platform.Characteristic.On)
       .onSet(this.setPaused.bind(this))
       .onGet(this.getPaused.bind(this));
 
-
+    this.updateStates();
 
     // Monitor vacuum state
-    let vacuumDocked = false;
+    this.monitorVacuumState().then(() => {
+      this.monitorVacuumStateInterval();
+    })
+      .catch(() => {
+        this.log.debug('Promise Rejected with first interval update.');
+        this.monitorVacuumStateInterval();
+      });
+  }
+
+  // Monitor vacuum state interval function
+  async monitorVacuumStateInterval() {
     setInterval(async () => {
-      await this.device.update(Properties.DOCKED_STATUS)
+      await this.monitorVacuumState()
         .catch(() => {
-          this.log.debug('Promise Rejected with docked status update.');
+          this.log.debug('Promise Rejected with interval update.');
         });
+    }, this.dockedUpdateInterval);
+  }
 
-      if(!invertDockedStatus) {
-        vacuumDocked = device.get_property_value(Properties.DOCKED_STATUS) === 1;
-      } else {
-        vacuumDocked = device.get_property_value(Properties.DOCKED_STATUS) !== 1;
-      }
-      await this.updateItems(vacuumDocked)
-        .catch(() => {
-          this.log.debug('Promise Rejected with running docked update.');
-        });
+  // Monitor vacuum state function
+  async monitorVacuumState() {
+    let vacuumDocked = false;
+
+    await this.device.update(Properties.DOCKED_STATUS)
+      .catch(() => {
+        this.log.debug('Promise Rejected with docked status update.');
+      });
+
+    if(!this.invertDockedStatus) {
+      vacuumDocked = this.device.get_property_value(Properties.DOCKED_STATUS) === 1;
+    } else {
+      vacuumDocked = this.device.get_property_value(Properties.DOCKED_STATUS) !== 1;
+    }
+    await this.updateItems(vacuumDocked)
+      .catch(() => {
+        this.log.debug('Promise Rejected with running docked update.');
+      });
 
 
-      this.dockedStatusService.updateCharacteristic(this.platform.Characteristic.ContactSensorState, vacuumDocked);
+    this.dockedStatusService.updateCharacteristic(this.platform.Characteristic.ContactSensorState, vacuumDocked);
 
-      this.platform.log.debug('Triggering Vacuum Docked:', vacuumDocked);
-    }, 5000);
+    this.log.debug('Triggering Vacuum Docked:', vacuumDocked);
   }
 
   // Update docked, active, and paused state
@@ -104,7 +113,8 @@ export class SharkIQAccessory {
       });
 
     if (!vacuumDocked) {
-      if (this.isActive) {
+      const mode = this.device.operating_mode();
+      if (mode === OperatingModes.START || mode === OperatingModes.STOP) {
         await this.device.update(Properties.POWER_MODE)
           .catch(() => {
             this.log.debug('Promise Rejected with power mode update.');
@@ -120,23 +130,19 @@ export class SharkIQAccessory {
           });
       }
     }
+  }
 
+  // Update paused and active state on switch
+  updateStates() {
     const mode = this.device.operating_mode();
     if (mode === OperatingModes.START) {
       this.service.updateCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.ACTIVE);
-      this.isActive = true;
     } else if (mode === OperatingModes.STOP) {
       this.service.updateCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.ACTIVE);
-      this.isActive = true;
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.INACTIVE);
-      this.isActive = false;
     }
-    this.updatePaused(mode);
-  }
 
-  // Update paused state on switch
-  updatePaused(mode: number) {
     if (mode === OperatingModes.STOP) {
       this.vacuumPausedService.updateCharacteristic(this.platform.Characteristic.On, true);
     } else {
@@ -146,7 +152,7 @@ export class SharkIQAccessory {
 
   // Get paused state
   getPaused() {
-    this.platform.log.debug('Triggering GET Paused');
+    this.log.debug('Triggering GET Paused');
 
     const mode = this.device.operating_mode() === OperatingModes.STOP;
     if (mode) {
@@ -158,16 +164,25 @@ export class SharkIQAccessory {
 
   // Set paused state
   async setPaused(value: CharacteristicValue) {
-    this.platform.log.debug('Triggering SET Paused');
+    this.log.debug('Triggering SET Paused');
 
-    if (this.isActive) {
+    const mode = this.device.operating_mode();
+    if (mode === OperatingModes.START || mode === OperatingModes.STOP) {
       if (value) {
-        await this.device.set_operating_mode(OperatingModes.STOP);
+        await this.device.set_operating_mode(OperatingModes.STOP)
+          .catch(() => {
+            this.log.debug('Promise Rejected with setting operating mode.');
+          });
       } else {
-        await this.device.set_operating_mode(OperatingModes.START);
+        await this.device.set_operating_mode(OperatingModes.START)
+          .catch(() => {
+            this.log.debug('Promise Rejected with setting operating mode.');
+          });
       }
     } else {
-      this.vacuumPausedService.updateCharacteristic(this.platform.Characteristic.On, false);
+      setTimeout(() => {
+        this.vacuumPausedService.updateCharacteristic(this.platform.Characteristic.On, false);
+      }, 100);
     }
 
   }
@@ -175,23 +190,23 @@ export class SharkIQAccessory {
 
   // Check if the vacuum is active for UI
   async getVacuumActive() {
-    this.platform.log.debug('Triggering GET Vacuum Active');
+    this.log.debug('Triggering GET Vacuum Active');
 
-    const vacuumDocked = this.device.get_property_value(Properties.DOCKED_STATUS) === 1;
-    await this.updateItems(vacuumDocked)
-      .catch(() => {
-        this.log.debug('Promise Rejected with running docked update.');
-      });
-
-    return this.isActive;
+    const mode = this.device.operating_mode();
+    if (mode === OperatingModes.START || mode === OperatingModes.STOP) {
+      return true;
+    } else {
+      return false;
+    }
   }
 
   // Set the vacuum state by UI
   async setVacuumActive(value: CharacteristicValue) {
-    this.platform.log.debug('Triggering SET Vacuum Active');
+    this.log.debug('Triggering SET Vacuum Active');
 
     if (!value) {
-      if (this.isActive) {
+      const mode = this.device.operating_mode();
+      if (mode === OperatingModes.START || mode === OperatingModes.STOP) {
         await this.setFanSpeed(0)
           .catch(() => {
             this.log.debug('Promise Rejected with setting fan speed.');
@@ -202,7 +217,10 @@ export class SharkIQAccessory {
 
   // Get vacuum power for UI
   async getFanSpeed() {
-    const vacuumActive = this.isActive;
+    this.log.debug('Triggering GET Fan Speed');
+
+    const mode = this.device.operating_mode();
+    const vacuumActive = mode === OperatingModes.START || mode === OperatingModes.STOP;
     if (vacuumActive) {
       const power_mode = this.device.get_property_value(Properties.POWER_MODE);
       if (power_mode === PowerModes.MAX) {
@@ -213,35 +231,41 @@ export class SharkIQAccessory {
         return 60;
       }
     }
-    return 0;
+    return false;
   }
 
   // Set vacuum power from UI (and start/stop vacuum if needed)
   async setFanSpeed(value: CharacteristicValue) {
+    this.log.debug('Triggering SET Fan Speed');
+
     let power_mode = PowerModes.NORMAL;
     if (value === 30) {
       power_mode = PowerModes.ECO;
     } else if (value === 90) {
       power_mode = PowerModes.MAX;
     } else if (value === 0) {
-      this.isActive = false;
-      this.service.updateCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.INACTIVE);
-      this.vacuumPausedService.updateCharacteristic(this.platform.Characteristic.On, false);
       await this.device.cancel_clean()
         .catch(() => {
           this.log.debug('Promise Rejected with cancel cleaning update.');
         });
+      this.service.updateCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.INACTIVE);
+      this.vacuumPausedService.updateCharacteristic(this.platform.Characteristic.On, false);
       return;
     }
-    if (this.getPaused()) {
-      await this.device.set_operating_mode(OperatingModes.START);
+    const isPaused = this.getPaused();
+    if (isPaused) {
+      await this.device.set_operating_mode(OperatingModes.START)
+        .catch(() => {
+          this.log.debug('Promise Rejected with setting operating mode.');
+        });
+      this.vacuumPausedService.updateCharacteristic(this.platform.Characteristic.On, false);
     }
     await this.device.set_property_value(Properties.POWER_MODE, power_mode)
       .catch(() => {
         this.log.debug('Promise Rejected with powermode update.');
       });
-    if (!this.isActive) {
-      this.isActive = true;
+    const mode = this.device.operating_mode();
+    if (mode !== OperatingModes.START && mode !== OperatingModes.STOP) {
       this.service.updateCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.ACTIVE);
       await this.device.clean_rooms([])
         .catch(() => {
