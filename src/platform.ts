@@ -54,7 +54,8 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
 
   // Attempt to login and fetch devices.
   login = async (email: string, password: string) => {
-    const ayla_api = get_ayla_api(email, password, this.log);
+    const europe = this.config.europe || false;
+    const ayla_api = get_ayla_api(email, password, this.log, europe);
     await ayla_api.sign_in()
       .catch(() => {
         this.log.debug('Promise Rejected with sign in.');

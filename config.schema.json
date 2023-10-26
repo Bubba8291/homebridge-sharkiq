@@ -29,6 +29,12 @@
           "type": "string"
         }
       },
+      "europe": {
+        "title": "SharkClean European Server",
+        "type": "boolean",
+        "required": false,
+        "default": false
+      },
       "invertDockedStatus": {
         "title": "Invert Vacuum Docked Status",
         "type": "boolean",
@@ -79,6 +85,7 @@
             }
           ]
         },
+        "europe",
         "invertDockedStatus",
         "dockedUpdateInterval"
       ]

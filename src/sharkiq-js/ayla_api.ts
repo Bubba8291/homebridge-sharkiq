@@ -22,7 +22,7 @@ const get_ayla_api = function (username: string, password: string, log: Logger, 
   if (europe) {
     return new AylaApi(username, password, global_vars.EU_SHARK_APP_ID, global_vars.EU_SHARK_APP_SECRET, log, europe);
   } else {
-    return new AylaApi(username, password, global_vars.SHARK_APP_ID, global_vars.SHARK_APP_SECRET, log);
+    return new AylaApi(username, password, global_vars.SHARK_APP_ID, global_vars.SHARK_APP_SECRET, log, europe);
   }
 };
 

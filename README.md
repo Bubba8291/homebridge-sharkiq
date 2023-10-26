@@ -34,6 +34,7 @@ Configure Homebridge. The config file for SharkIQ should include:
                 "[Shark Vacuum Serial Number]",
                 "..."
             ],
+            "europe": false,
             "invertDockedStatus": false,
             "dockedUpdateInterval": 5000
         }
@@ -42,6 +43,8 @@ Configure Homebridge. The config file for SharkIQ should include:
 ```
 
 The email and password is your Shark Clean account you used to setup the vacuum. The Vacuums array is a list of your vacuum's serial numbers. If you only have one vacuum, just include the one's serial number.
+
+If you are in Europe, set the `europe` config value to `true`. SharkClean has separate servers for the U.S. and Europe. The default value is `false`, which connects to the U.S. server.
 
 The default interval between updating the docked status is 5 seconds (5000 ms). To change the docked status interval, add `dockedUpdateInterval` to your config. Value is in milliseconds.
 
