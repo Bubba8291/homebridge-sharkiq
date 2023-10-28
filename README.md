@@ -31,7 +31,7 @@ Configure Homebridge. The config file for SharkIQ should include:
             "email": "[Shark Clean Account Email]",
             "password": "[Shark Clean Account Password]",
             "vacuums": [
-                "[Shark Vacuum Serial Number]",
+                "[Shark Vacuum DSN]",
                 "..."
             ],
             "europe": false,
@@ -42,7 +42,7 @@ Configure Homebridge. The config file for SharkIQ should include:
 }
 ```
 
-The email and password is your Shark Clean account you used to setup the vacuum. The Vacuums array is a list of your vacuum's serial numbers. If you only have one vacuum, just include the one's serial number.
+The email and password is your Shark Clean account you used to setup the vacuum. The Vacuums array is a list of your vacuum's device serial numbers (DSN). If you only have one vacuum, just include the one's DSN. The DSN(s) can be found in the SharkClean mobile app.
 
 If you are in Europe, set the `europe` config value to `true`. SharkClean has separate servers for the U.S. and Europe. The default value is `false`, which connects to the U.S. server.
 
@@ -58,8 +58,6 @@ The default interval between updating the docked status is 5 seconds (5000 ms). 
 - Pause switch for pausing the vacuum while it's running
 
 ## Notes
-
-~~This plugin is still a little buggy at some times. Sometimes the vacuum won't refresh or set a control from Homebridge right away. But it usually does update the first time. If not the second time.~~
 
 Contributions would be very helpful to help this Homebridge plugin stay maintained and up to date. If you have any problems, please create an issue.
 

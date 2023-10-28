@@ -25,7 +25,7 @@
         "type": "array",
         "required": true,
         "items": {
-          "title": "SharkClean Vacuum Serial Number",
+          "title": "SharkClean DSN",
           "type": "string"
         }
       },
@@ -68,7 +68,7 @@
       "items": [
         {
           "type": "help",
-          "helpvalue": "<h5>Vacuums</h5><em class='primary-text'>Enter SharkClean Serial Number(s) you want to add to HomeKit.</em>"
+          "helpvalue": "<h5>Vacuums</h5><em class='primary-text'>Enter SharkClean DSN(s) you want to add to HomeKit.</em>"
         },
         {
           "key": "vacuums",
@@ -81,7 +81,7 @@
           "items": [
             {
               "key": "vacuums[]",
-              "title": "{{ value || 'New Serial Number' }}"
+              "title": "{{ value || 'New DSN' }}"
             }
           ]
         },

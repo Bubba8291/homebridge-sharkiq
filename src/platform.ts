@@ -34,14 +34,18 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
         log.error('Login information must be present in config');
         return;
       } else if (!Array.isArray(serialNumbers) || serialNumbers.length === 0) {
-        log.error('List of your vacuum serial numbers you want to be added must be present in the config');
+        log.error('List of your vacuum DSNs you want to be added must be present in the config');
         return;
       }
       this.login(email, password).then((devices) => {
         for (let i = 0; i < devices.length; i++) {
-          if (serialNumbers.includes(devices[i]._vac_serial_number)) {
+          if(serialNumbers.includes(devices[i]._dsn)) {
             this.vacuumDevices.push(devices[i]);
           }
+        }
+        if (this.vacuumDevices.length === 0) {
+          log.warn('None of the DSNs provided matched the vacuum(s) on your account.');
+          log.warn('If you recently updated, vacuums are obtained by the device serial number (DSN) instead of the vacuum serial number.');
         }
         this.discoverDevices();
       })
@@ -82,7 +86,7 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
     const invertDockedStatus = this.config.invertDockedStatus || false;
     const dockedUpdateInterval = this.config.dockedUpdateInterval || 5000;
     this.vacuumDevices.forEach(vacuumDevice => {
-      const uuid = this.api.hap.uuid.generate(vacuumDevice._vac_serial_number.toString());
+      const uuid = this.api.hap.uuid.generate(vacuumDevice._dsn.toString());
       let accessory = unusedDeviceAccessories.find(accessory => accessory.UUID === uuid);
 
       if(accessory) {
@@ -98,8 +102,8 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
       }
       accessoryInformationService
         .setCharacteristic(this.Characteristic.Manufacturer, 'Shark')
-        .setCharacteristic(this.Characteristic.Model, vacuumDevice._vac_model_number)
-        .setCharacteristic(this.Characteristic.SerialNumber, vacuumDevice._vac_serial_number);
+        .setCharacteristic(this.Characteristic.Model, vacuumDevice._vac_model_number || 'Unknown')
+        .setCharacteristic(this.Characteristic.SerialNumber, vacuumDevice._dsn);
 
       new SharkIQAccessory(this, accessory, vacuumDevice, this.api.hap.uuid, this.log, invertDockedStatus, dockedUpdateInterval);
     });
