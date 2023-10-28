@@ -19,7 +19,7 @@ export class SharkIQAccessory {
   ) {
 
     // Get device serial number
-    const serial_number = device._vac_serial_number;
+    const serial_number = device._dsn;
 
     const vacuumUUID = UUIDGen.generate(serial_number + '-vacuum');
     this.service = this.accessory.getService('Vacuum') ||
