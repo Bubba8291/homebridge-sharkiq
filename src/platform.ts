@@ -40,6 +40,10 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
       this.login(email, password).then((devices) => {
         for (let i = 0; i < devices.length; i++) {
           if (serialNumbers.includes(devices[i]._vac_serial_number)) {
+            log.info('Used vacuum serial number for', devices[i]._vac_serial_number);
+            this.vacuumDevices.push(devices[i]);
+          } else if(serialNumbers.includes(devices[i]._dsn)) {
+            log.info('Used device serial number (dsn) for', devices[i]._dsn);
             this.vacuumDevices.push(devices[i]);
           }
         }
