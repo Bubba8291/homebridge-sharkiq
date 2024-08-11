@@ -58,13 +58,13 @@ class AylaApi {
     const reqData = {};
     const headers = {};
     reqData['method'] = method;
-    if(auth_header) {
+    if (auth_header) {
       headers['Authorization'] = auth_header;
     }
-    if(method === 'POST') {
+    if (method === 'POST') {
       headers['Content-Type'] = 'application/json;charset=UTF-8';
     }
-    if(data !== null) {
+    if (data !== null) {
       reqData['body'] = JSON.stringify(data);
     }
     reqData['headers'] = headers;
@@ -100,16 +100,6 @@ class AylaApi {
 
   _set_credentials(status_code, login_result) {
     // Update credentials for cache
-    if (status_code === 404) {
-      this.log.error('App id and or secret are incorrect.');
-      return;
-    } else {
-      if (status_code === 401) {
-        this.log.error('Invalid username or password.');
-        return;
-      }
-    }
-
     this._access_token = login_result['access_token'];
     this._refresh_token = login_result['refresh_token'];
     const dateNow = new Date();
@@ -124,7 +114,15 @@ class AylaApi {
     try {
       const resp = await this.makeRequest('POST', url, login_data, null);
       const jsonResponse = JSON.parse(resp.response);
-      this._set_credentials(resp.status, jsonResponse);
+      const status = resp.status;
+      if (status !== 200) {
+        this.log.error(`API Error: Unable to sign in. Status Code ${status}`);
+        if (jsonResponse['error'] !== undefined) {
+          this.log.error(`Message: ${jsonResponse['error']}`);
+        }
+        return;
+      }
+      this._set_credentials(status, jsonResponse);
     } catch {
       this.log.debug('Promise Rejected with sign in.');
     }
@@ -137,9 +135,19 @@ class AylaApi {
     try {
       const resp = await this.makeRequest('POST', url, refresh_data, null);
       const jsonResponse = JSON.parse(resp.response);
-      this._set_credentials(resp.status, jsonResponse);
+      const status = resp.status;
+      if (status !== 200) {
+        this.log.error(`API Error: Unable to refresh auth token. Status Code ${status}`);
+        if (jsonResponse['error'] !== undefined) {
+          this.log.error(`Message: ${jsonResponse['error']}`);
+        }
+        return false;
+      }
+      this._set_credentials(status, jsonResponse);
+      return true;
     } catch {
       this.log.debug('Promise Rejected with refreshin auth.');
+      return false;
     }
   }
 
@@ -169,12 +177,13 @@ class AylaApi {
   }
 
   // Get when auth data expires
-  get auth_expiration() {
+  async auth_expiration() {
     if (!this._is_authed) {
       return null;
     } else {
       if (this._auth_expiration === null) {
-        this.sign_in();
+        await this.sign_in();
+        return this._auth_expiration;
       } else {
         return this._auth_expiration;
       }
@@ -182,40 +191,43 @@ class AylaApi {
   }
 
   // Check if the token expired
-  get token_expired() {
-    if (this.auth_expiration === null) {
+  async token_expired() {
+    const auth_expiration = await this.auth_expiration();
+    if (auth_expiration === null) {
       return true;
     }
     const dateNow = new Date();
-    return dateNow > this.auth_expiration! === true;
+    return dateNow > auth_expiration! === true;
   }
 
   // Check if the current token is expiring soon
-  get token_expiring_soon() {
-    if (this.auth_expiration === null) {
+  async token_expiring_soon() {
+    const auth_expiration = await this.auth_expiration();
+    if (auth_expiration === null) {
       return true;
     }
     const dateNow = new Date();
-    return dateNow > subtractSeconds(this.auth_expiration, 600) === true;
+    return dateNow > subtractSeconds(auth_expiration, 600) === true;
   }
 
   // Check if auth is valid and renew if expired.
-  async check_auth(raise_expiring_soon = true) {
-    if (!this._access_token || !this._is_authed || this.token_expired) {
+  async check_auth() {
+    const token_expired = await this.token_expired();
+    if (!this._access_token || !this._is_authed || token_expired) {
       this._is_authed = false;
       this.log.error('Invalid username or password.');
       return false;
-    } else {
-      if (raise_expiring_soon && this.token_expiring_soon) {
-        try {
-          await this.refresh_auth();
-        } catch {
-          this.log.error('Unable to refresh auth token.');
-          return false;
-        }
+    } else if (await this.token_expiring_soon()) {
+      try {
+        const status = await this.refresh_auth();
+        return status;
+      } catch {
+        this.log.error('Unable to refresh auth token.');
+        return false;
       }
+    } else {
+      return true;
     }
-    return true;
   }
 
   // Get auth header for requests
@@ -224,7 +236,7 @@ class AylaApi {
     if (check_auth) {
       return `auth_token ${this._access_token}`;
     } else {
-      return '';
+      return null;
     }
   }
 
