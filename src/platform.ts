@@ -6,6 +6,8 @@ import { SharkIQAccessory } from './platformAccessory';
 import { get_ayla_api } from './sharkiq-js/ayla_api';
 import { SharkIqVacuum } from './sharkiq-js/sharkiq';
 
+import { join } from 'path';
+
 // SharkIQPlatform Main Class
 export class SharkIQPlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
@@ -25,19 +27,12 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
 
     // Start plugin and attempt to login
     this.api.on('didFinishLaunching', () => {
-      log.debug('Executed didFinishLaunching callback');
-
-      const email = config.email;
-      const password = config.password;
       const serialNumbers = config.vacuums;
-      if (!email || !password) {
-        log.error('Login information must be present in config');
-        return;
-      } else if (!Array.isArray(serialNumbers) || serialNumbers.length === 0) {
+      if (!Array.isArray(serialNumbers) || serialNumbers.length === 0) {
         log.error('List of your vacuum DSNs you want to be added must be present in the config');
         return;
       }
-      this.login(email, password).then((devices) => {
+      this.login().then((devices) => {
         for (let i = 0; i < devices.length; i++) {
           if(serialNumbers.includes(devices[i]._dsn)) {
             this.vacuumDevices.push(devices[i]);
@@ -45,7 +40,6 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
         }
         if (this.vacuumDevices.length === 0) {
           log.warn('None of the DSNs provided matched the vacuum(s) on your account.');
-          log.warn('If you recently updated, vacuums are obtained by the device serial number (DSN) instead of the vacuum serial number.');
         }
         this.discoverDevices();
       })
@@ -57,9 +51,11 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
   }
 
   // Attempt to login and fetch devices.
-  login = async (email: string, password: string) => {
+  login = async () => {
+    const authFile = this.config.authFile || '.sharkiq.json';
+    const authFilePath = join(this.api.user.storagePath(), authFile);
     const europe = this.config.europe || false;
-    const ayla_api = get_ayla_api(email, password, this.log, europe);
+    const ayla_api = get_ayla_api(authFilePath, this.log, europe);
     await ayla_api.sign_in()
       .catch(() => {
         this.log.debug('Promise Rejected with sign in.');

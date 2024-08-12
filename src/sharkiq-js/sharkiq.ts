@@ -171,7 +171,7 @@ class SharkIqVacuum {
   }
 
   // Set a device property value
-  async set_property_value(property_name, value) {
+  async set_property_value(property_name, value, attempt = 0) {
     if (property_name.value) {
       property_name = property_name.value;
     }
@@ -183,7 +183,17 @@ class SharkIqVacuum {
     const data = { 'datapoint': { 'value': value } };
     try {
       const auth_header = await this.ayla_api.auth_header();
-      await this.ayla_api.makeRequest('POST', end_point, data, auth_header);
+      const resp = await this.ayla_api.makeRequest('POST', end_point, data, auth_header);
+      if (resp.status !== 200) {
+        this.log.error('Error setting property value.');
+        const status = await this.ayla_api.attempt_refresh(attempt);
+        if (!status && attempt === 1) {
+          return;
+        } else {
+          await this.set_property_value(property_name, value, attempt + 1);
+          return;
+        }
+      }
       this.properties_full[property_name] = value;
     } catch {
       this.log.debug('Promise Rejected with setting property value.');
@@ -196,7 +206,7 @@ class SharkIqVacuum {
   }
 
   // Get properties
-  async update(property_list) {
+  async update(property_list, attempt = 0) {
     if (property_list) {
       if (!Array.isArray(property_list)) {
         property_list = [property_list];
@@ -211,12 +221,32 @@ class SharkIqVacuum {
           const params = { 'names': 'GET_' + property };
           const auth_header = await this.ayla_api.auth_header();
           const resp = await this.ayla_api.makeRequest('GET', url + formatParams(params), null, auth_header);
+          if (resp.status !== 200) {
+            this.log.error('Error getting property values.');
+            const status = await this.ayla_api.attempt_refresh(attempt);
+            if (!status && attempt === 1) {
+              return;
+            } else {
+              await this.update(property_list, attempt + 1);
+              return;
+            }
+          }
           const properties = JSON.parse(resp.response);
           this._do_update(full_update, properties);
         }
       } else {
         const auth_header = await this.ayla_api.auth_header();
         const resp = await this.ayla_api.makeRequest('GET', url, null, auth_header);
+        if (resp.status !== 200) {
+          this.log.error('Error getting property values.');
+          const status = await this.ayla_api.attempt_refresh(attempt);
+          if (!status && attempt === 1) {
+            return;
+          } else {
+            await this.update(property_list, attempt + 1);
+            return;
+          }
+        }
         const properties = JSON.parse(resp.response);
         this._do_update(full_update, properties);
       }
@@ -270,7 +300,7 @@ class SharkIqVacuum {
   }
 
   // Set vacuum operating mode
-  async set_operating_mode(mode) {
+  async set_operating_mode(mode: number) {
     try {
       await this.set_property_value(Properties.OPERATING_MODE, mode);
     } catch {

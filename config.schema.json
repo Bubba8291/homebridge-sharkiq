@@ -6,19 +6,15 @@
     "type": "object",
     "properties": {
       "name": {
-        "type": "string",
         "title": "Name",
+        "type": "string",
         "default": "SharkIQ"
       },
-      "email": {
-        "title": "SharkClean Account Email",
+      "authFile": {
+        "title": "SharkClean Auth File",
         "type": "string",
-        "required": true
-      },
-      "password": {
-        "title": "SharkClean Account Password",
-        "type": "string",
-        "required": true
+        "required": true,
+        "default": ".sharkiq.json"
       },
       "vacuums": {
         "title": "SharkClean Vacuum Devicess",
@@ -56,8 +52,7 @@
       "expandable": true,
       "expanded": true,
       "items": [
-        "email",
-        "password"
+        "authFile"
       ]
     },
     {

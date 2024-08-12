@@ -27,7 +27,8 @@
     "sharkiq"
   ],
   "dependencies": {
-    "node-fetch": "^2.6.1"
+    "node-fetch": "^2.6.1",
+    "express": "^4.19.2"
   },
   "devDependencies": {
     "@types/node": "^18.16.20",

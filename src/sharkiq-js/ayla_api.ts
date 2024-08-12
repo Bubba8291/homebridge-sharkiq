@@ -4,6 +4,9 @@ import { Logger } from 'homebridge';
 import { global_vars } from './const';
 import { SharkIqVacuum } from './sharkiq';
 
+import { getAuthFile, setAuthFile } from '../config';
+import { AuthData } from '../type';
+
 function addSeconds(date, seconds) {
   return new Date(date.getTime() + seconds * 1000);
 }
@@ -18,17 +21,16 @@ type APIResponse = {
 };
 
 // New AylaApi object
-const get_ayla_api = function (username: string, password: string, log: Logger, europe = false) {
+const get_ayla_api = function (auth_file_path: string, log: Logger, europe = false) {
   if (europe) {
-    return new AylaApi(username, password, global_vars.EU_SHARK_APP_ID, global_vars.EU_SHARK_APP_SECRET, log, europe);
+    return new AylaApi(auth_file_path, global_vars.EU_SHARK_APP_ID, global_vars.EU_SHARK_APP_SECRET, log, europe);
   } else {
-    return new AylaApi(username, password, global_vars.SHARK_APP_ID, global_vars.SHARK_APP_SECRET, log, europe);
+    return new AylaApi(auth_file_path, global_vars.SHARK_APP_ID, global_vars.SHARK_APP_SECRET, log, europe);
   }
 };
 
 class AylaApi {
-  _email: string;
-  _password: string;
+  _auth_file_path: string;
   _access_token: string | null;
   _refresh_token: string | null;
   _auth_expiration: Date | null;
@@ -40,9 +42,8 @@ class AylaApi {
 
 
   // Simple Ayla Networks API wrapper
-  constructor(email, password, app_id, app_secret, log, europe = false) {
-    this._email = email;
-    this._password = password;
+  constructor(auth_file_path, app_id, app_secret, log, europe = false) {
+    this._auth_file_path = auth_file_path;
     this._access_token = null;
     this._refresh_token = null;
     this._auth_expiration = null;
@@ -51,6 +52,11 @@ class AylaApi {
     this._app_secret = app_secret;
     this.log = log;
     this.europe = europe;
+  }
+
+  // Get exit error message
+  get exit_error_message() {
+    return 'SharkIQ will not continue. If the issue persists, open an issue.';
   }
 
   // Make API Request
@@ -84,21 +90,21 @@ class AylaApi {
     }
   }
 
-  get _login_data() {
-    // Structure for login json request data
-    return {
-      'user': {
-        'email': this._email,
-        'password': this._password,
-        'application': {
-          'app_id': this._app_id,
-          'app_secret': this._app_secret,
-        },
-      },
-    };
-  }
+  // get _login_data() {
+  //   // Structure for login json request data
+  //   return {
+  //     'user': {
+  //       'email': this._email,
+  //       'password': this._password,
+  //       'application': {
+  //         'app_id': this._app_id,
+  //         'app_secret': this._app_secret,
+  //       },
+  //     },
+  //   };
+  // }
 
-  _set_credentials(status_code, login_result) {
+  _set_credentials(login_result: AuthData) {
     // Update credentials for cache
     this._access_token = login_result['access_token'];
     this._refresh_token = login_result['refresh_token'];
@@ -107,29 +113,21 @@ class AylaApi {
     this._is_authed = true;
   }
 
-  // Sign  in
+  // Sign in with auth file
   async sign_in() {
-    const login_data = this._login_data;
-    const url = `${this.europe ? global_vars.EU_LOGIN_URL : global_vars.LOGIN_URL}/users/sign_in.json`;
-    try {
-      const resp = await this.makeRequest('POST', url, login_data, null);
-      const jsonResponse = JSON.parse(resp.response);
-      const status = resp.status;
-      if (status !== 200) {
-        this.log.error(`API Error: Unable to sign in. Status Code ${status}`);
-        if (jsonResponse['error'] !== undefined) {
-          this.log.error(`Message: ${jsonResponse['error']}`);
-        }
-        return;
-      }
-      this._set_credentials(status, jsonResponse);
-    } catch {
-      this.log.debug('Promise Rejected with sign in.');
+    this.log.debug('Signing in.');
+    const authFile = await getAuthFile(this._auth_file_path);
+    if (!authFile) {
+      this.log.error('Auth file not found.');
+      return false;
     }
+    this._set_credentials(authFile);
+    return true;
   }
 
   // Refresh auth token
   async refresh_auth() {
+    this.log.debug('Refreshing auth token.');
     const refresh_data = { 'user': { 'refresh_token': this._refresh_token } };
     const url = `${this.europe ? global_vars.EU_LOGIN_URL : global_vars.LOGIN_URL}/users/refresh_token.json`;
     try {
@@ -143,7 +141,10 @@ class AylaApi {
         }
         return false;
       }
-      this._set_credentials(status, jsonResponse);
+      setAuthFile(this._auth_file_path, jsonResponse);
+      this.log.debug('Auth token file.', this._auth_file_path);
+      this.log.debug('Auth token refreshed.', jsonResponse);
+      this._set_credentials(jsonResponse);
       return true;
     } catch {
       this.log.debug('Promise Rejected with refreshin auth.');
@@ -215,7 +216,6 @@ class AylaApi {
     const token_expired = await this.token_expired();
     if (!this._access_token || !this._is_authed || token_expired) {
       this._is_authed = false;
-      this.log.error('Invalid username or password.');
       return false;
     } else if (await this.token_expiring_soon()) {
       try {
@@ -230,6 +230,22 @@ class AylaApi {
     }
   }
 
+  // Attempt to refresh the access token
+  async attempt_refresh(attempt: number): Promise<boolean> {
+    if (attempt === 1) {
+      this.log.error(this.exit_error_message);
+      return false;
+    }
+    this.log.info('Attempting to refresh access token.');
+    const status = await this.refresh_auth();
+    if (!status) {
+      this.log.error('Refreshing access token failed. Please check your auth file and recreate it if needed.');
+      this.log.error(this.exit_error_message);
+      return false;
+    }
+    return true;
+  }
+
   // Get auth header for requests
   async auth_header() {
     const check_auth = await this.check_auth();
@@ -241,16 +257,21 @@ class AylaApi {
   }
 
   // List device objects
-  async list_devices() {
+  async list_devices(attempt = 1) {
     const url = `${this.europe ? global_vars.EU_DEVICE_URL : global_vars.DEVICE_URL}/apiv1/devices.json`;
     try {
       const auth_header = await this.auth_header();
       const resp = await this.makeRequest('GET', url, null, auth_header);
-      const devices = JSON.parse(resp.response);
       if (resp.status === 401) {
         this.log.error('API Error: Unauthorized');
-        return [];
+        const status = await this.attempt_refresh(attempt);
+        if (!status && attempt === 1) {
+          return [];
+        } else {
+          return await this.list_devices(attempt + 1);
+        }
       }
+      const devices = JSON.parse(resp.response);
       const d = devices.map((device) => {
         return device['device'];
       });
