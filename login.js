@@ -2,6 +2,7 @@ const express = require('express');
 const fetch = require('node-fetch');
 
 const crypto = require('crypto');
+const fs = require('fs');
 
 const app = express();
 const port = 3000;
@@ -80,6 +81,7 @@ app.get('/oauth/callback', async (req, res) => {
     });
     const response2 = await fetch('https://user-field-39a9391a.aylanetworks.com/api/v1/token_sign_in', reqData2);
     const aylaTokenData = await response2.json();
+    fs.writeFileSync('sharkiq.json', JSON.stringify(aylaTokenData));
     res.header('Content-Type', 'application/json');
     res.send(JSON.stringify(aylaTokenData));
   } catch (error) {
