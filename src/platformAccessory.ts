@@ -1,4 +1,4 @@
-import { Service, PlatformAccessory, CharacteristicValue, Logger } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue, Logger, uuid } from 'homebridge';
 
 import { SharkIQPlatform } from './platform';
 import { Properties, SharkIqVacuum, OperatingModes, PowerModes } from './sharkiq-js/sharkiq';
@@ -12,7 +12,7 @@ export class SharkIQAccessory {
     private readonly platform: SharkIQPlatform,
     private readonly accessory: PlatformAccessory,
     private device: SharkIqVacuum,
-    private UUIDGen,
+    UUIDGen: typeof uuid,
     private readonly log: Logger,
     private readonly invertDockedStatus: boolean,
     private readonly dockedUpdateInterval: number,
@@ -20,7 +20,6 @@ export class SharkIQAccessory {
 
     // Get device serial number
     const serial_number = device._dsn;
-
     const vacuumUUID = UUIDGen.generate(serial_number + '-vacuum');
     this.service = this.accessory.getService('Vacuum') ||
       this.accessory.addService(this.platform.Service.Fanv2, 'Vacuum', vacuumUUID);
@@ -71,7 +70,7 @@ export class SharkIQAccessory {
   }
 
   // Monitor vacuum state interval function
-  async monitorVacuumStateInterval() {
+  async monitorVacuumStateInterval(): Promise<void> {
     setInterval(async () => {
       await this.monitorVacuumState()
         .catch(() => {
@@ -81,7 +80,7 @@ export class SharkIQAccessory {
   }
 
   // Monitor vacuum state function
-  async monitorVacuumState() {
+  async monitorVacuumState(): Promise<void> {
     let vacuumDocked = false;
 
     await this.device.update(Properties.DOCKED_STATUS)
@@ -106,7 +105,7 @@ export class SharkIQAccessory {
   }
 
   // Update docked, active, and paused state
-  async updateItems(vacuumDocked: boolean) {
+  async updateItems(vacuumDocked: boolean): Promise<void> {
     await this.device.update(Properties.OPERATING_MODE)
       .catch(() => {
         this.log.debug('Promise Rejected with operating mode update.');
@@ -123,7 +122,9 @@ export class SharkIQAccessory {
         const platform = this.platform;
         await this.getFanSpeed()
           .then((power_mode) => {
-            service.updateCharacteristic(platform.Characteristic.RotationSpeed, power_mode);
+            if (power_mode !== null) {
+              service.updateCharacteristic(platform.Characteristic.RotationSpeed, power_mode);
+            }
           })
           .catch(() => {
             this.log.debug('Promise Rejected with getting power mode.');
@@ -133,7 +134,7 @@ export class SharkIQAccessory {
   }
 
   // Update paused and active state on switch
-  updateStates() {
+  updateStates(): void {
     const mode = this.device.operating_mode();
     if (mode === OperatingModes.START) {
       this.service.updateCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.ACTIVE);
@@ -151,7 +152,7 @@ export class SharkIQAccessory {
   }
 
   // Get paused state
-  getPaused() {
+  getPaused(): boolean {
     this.log.debug('Triggering GET Paused');
 
     const mode = this.device.operating_mode() === OperatingModes.STOP;
@@ -163,7 +164,7 @@ export class SharkIQAccessory {
   }
 
   // Set paused state
-  async setPaused(value: CharacteristicValue) {
+  async setPaused(value: CharacteristicValue): Promise<void> {
     this.log.debug('Triggering SET Paused');
 
     const mode = this.device.operating_mode();
@@ -189,7 +190,7 @@ export class SharkIQAccessory {
 
 
   // Check if the vacuum is active for UI
-  async getVacuumActive() {
+  async getVacuumActive(): Promise<boolean> {
     this.log.debug('Triggering GET Vacuum Active');
 
     const mode = this.device.operating_mode();
@@ -201,7 +202,7 @@ export class SharkIQAccessory {
   }
 
   // Set the vacuum state by UI
-  async setVacuumActive(value: CharacteristicValue) {
+  async setVacuumActive(value: CharacteristicValue): Promise<void> {
     this.log.debug('Triggering SET Vacuum Active');
 
     if (!value) {
@@ -216,7 +217,7 @@ export class SharkIQAccessory {
   }
 
   // Get vacuum power for UI
-  async getFanSpeed() {
+  async getFanSpeed(): Promise<number | null> {
     this.log.debug('Triggering GET Fan Speed');
 
     const mode = this.device.operating_mode();
@@ -231,11 +232,11 @@ export class SharkIQAccessory {
         return 60;
       }
     }
-    return false;
+    return null;
   }
 
   // Set vacuum power from UI (and start/stop vacuum if needed)
-  async setFanSpeed(value: CharacteristicValue) {
+  async setFanSpeed(value: CharacteristicValue): Promise<void> {
     this.log.debug('Triggering SET Fan Speed');
 
     let power_mode = PowerModes.NORMAL;

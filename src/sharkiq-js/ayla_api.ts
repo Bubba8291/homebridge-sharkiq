@@ -5,15 +5,8 @@ import { global_vars } from './const';
 import { SharkIqVacuum } from './sharkiq';
 
 import { getAuthFile, setAuthFile } from '../config';
+import { addSeconds, subtractSeconds } from '../utils';
 import { AuthData } from '../type';
-
-function addSeconds(date, seconds) {
-  return new Date(date.getTime() + seconds * 1000);
-}
-
-function subtractSeconds(date, seconds) {
-  return new Date(date.getTime() - seconds * 1000);
-}
 
 type APIResponse = {
   status: number;
@@ -21,7 +14,7 @@ type APIResponse = {
 };
 
 // New AylaApi object
-const get_ayla_api = function (auth_file_path: string, log: Logger, europe = false) {
+const get_ayla_api = function (auth_file_path: string, log: Logger, europe = false): AylaApi {
   if (europe) {
     return new AylaApi(auth_file_path, global_vars.EU_SHARK_APP_ID, global_vars.EU_SHARK_APP_SECRET, log, europe);
   } else {
@@ -55,7 +48,7 @@ class AylaApi {
   }
 
   // Get exit error message
-  get exit_error_message() {
+  get exit_error_message(): string {
     return 'SharkIQ will not continue. If the issue persists, open an issue.';
   }
 
@@ -90,21 +83,7 @@ class AylaApi {
     }
   }
 
-  // get _login_data() {
-  //   // Structure for login json request data
-  //   return {
-  //     'user': {
-  //       'email': this._email,
-  //       'password': this._password,
-  //       'application': {
-  //         'app_id': this._app_id,
-  //         'app_secret': this._app_secret,
-  //       },
-  //     },
-  //   };
-  // }
-
-  _set_credentials(login_result: AuthData) {
+  _set_credentials(login_result: AuthData): void {
     // Update credentials for cache
     this._access_token = login_result['access_token'];
     this._refresh_token = login_result['refresh_token'];
@@ -114,7 +93,7 @@ class AylaApi {
   }
 
   // Sign in with auth file
-  async sign_in() {
+  async sign_in(): Promise<boolean> {
     this.log.debug('Signing in.');
     const authFile = await getAuthFile(this._auth_file_path);
     if (!authFile) {
@@ -126,7 +105,7 @@ class AylaApi {
   }
 
   // Refresh auth token
-  async refresh_auth() {
+  async refresh_auth(): Promise<boolean> {
     this.log.debug('Refreshing auth token.');
     const refresh_data = { 'user': { 'refresh_token': this._refresh_token } };
     const url = `${this.europe ? global_vars.EU_LOGIN_URL : global_vars.LOGIN_URL}/users/refresh_token.json`;
@@ -142,8 +121,6 @@ class AylaApi {
         return false;
       }
       setAuthFile(this._auth_file_path, jsonResponse);
-      this.log.debug('Auth token file.', this._auth_file_path);
-      this.log.debug('Auth token refreshed.', jsonResponse);
       this._set_credentials(jsonResponse);
       return true;
     } catch {
@@ -153,12 +130,12 @@ class AylaApi {
   }
 
   // Get signout json request data
-  get sign_out_data() {
+  get sign_out_data(): object {
     return { 'user': { 'access_token': this._access_token } };
   }
 
   // Clear auth data
-  _clear_auth() {
+  _clear_auth(): void {
     /* Clear authentication state */
     this._is_authed = false;
     this._access_token = null;
@@ -167,7 +144,7 @@ class AylaApi {
   }
 
   // Sign out
-  async sign_out() {
+  async sign_out(): Promise<void> {
     const url = `${this.europe ? global_vars.EU_LOGIN_URL : global_vars.LOGIN_URL}/users/sign_out.json`;
     try {
       await this.makeRequest('POST', url, this.sign_out_data, null);
@@ -178,7 +155,7 @@ class AylaApi {
   }
 
   // Get when auth data expires
-  async auth_expiration() {
+  async auth_expiration(): Promise<Date | null> {
     if (!this._is_authed) {
       return null;
     } else {
@@ -192,17 +169,17 @@ class AylaApi {
   }
 
   // Check if the token expired
-  async token_expired() {
+  async token_expired(): Promise<boolean> {
     const auth_expiration = await this.auth_expiration();
     if (auth_expiration === null) {
       return true;
     }
     const dateNow = new Date();
-    return dateNow > auth_expiration! === true;
+    return dateNow > auth_expiration === true;
   }
 
   // Check if the current token is expiring soon
-  async token_expiring_soon() {
+  async token_expiring_soon(): Promise<boolean> {
     const auth_expiration = await this.auth_expiration();
     if (auth_expiration === null) {
       return true;
@@ -212,7 +189,7 @@ class AylaApi {
   }
 
   // Check if auth is valid and renew if expired.
-  async check_auth() {
+  async check_auth(): Promise<boolean> {
     const token_expired = await this.token_expired();
     if (!this._access_token || !this._is_authed || token_expired) {
       this._is_authed = false;
@@ -247,7 +224,7 @@ class AylaApi {
   }
 
   // Get auth header for requests
-  async auth_header() {
+  async auth_header(): Promise<string | null> {
     const check_auth = await this.check_auth();
     if (check_auth) {
       return `auth_token ${this._access_token}`;
@@ -257,7 +234,7 @@ class AylaApi {
   }
 
   // List device objects
-  async list_devices(attempt = 1) {
+  async list_devices(attempt = 1): Promise<object[]> {
     const url = `${this.europe ? global_vars.EU_DEVICE_URL : global_vars.DEVICE_URL}/apiv1/devices.json`;
     try {
       const auth_header = await this.auth_header();
@@ -265,14 +242,14 @@ class AylaApi {
       if (resp.status === 401) {
         this.log.error('API Error: Unauthorized');
         const status = await this.attempt_refresh(attempt);
-        if (!status && attempt === 1) {
+        if (!status && attempt === 2) {
           return [];
         } else {
           return await this.list_devices(attempt + 1);
         }
       }
       const devices = JSON.parse(resp.response);
-      const d = devices.map((device) => {
+      const d = devices.map((device: object) => {
         return device['device'];
       });
       return d;
@@ -283,7 +260,7 @@ class AylaApi {
   }
 
   // Get and return array of devices
-  async get_devices(update = true) {
+  async get_devices(update = true): Promise<SharkIqVacuum[]> {
     try {
       const d = await this.list_devices();
       const devices = d.map((device) => {
@@ -291,15 +268,15 @@ class AylaApi {
       });
       if (update) {
         for (let i = 0; i < devices.length; i++) {
-          await devices[i].update();
+          await devices[i].update([]);
           devices[i]._update_metadata();
         }
       }
       return devices;
     } catch {
       this.log.debug('Promise Rejected with getting devices.');
+      return [];
     }
-    return [];
   }
 }
 

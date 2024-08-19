@@ -3,6 +3,9 @@ import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { SharkIQAccessory } from './platformAccessory';
 
+import { Login } from './login';
+import { global_vars } from './sharkiq-js/const';
+
 import { get_ayla_api } from './sharkiq-js/ayla_api';
 import { SharkIqVacuum } from './sharkiq-js/sharkiq';
 
@@ -51,31 +54,35 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
   }
 
   // Attempt to login and fetch devices.
-  login = async () => {
-    const authFile = this.config.authFile || '.sharkiq.json';
-    const authFilePath = join(this.api.user.storagePath(), authFile);
+  login = async (): Promise<SharkIqVacuum[]> => {
+    const oAuthCode = this.config.oAuthCode || '';
     const europe = this.config.europe || false;
-    const ayla_api = get_ayla_api(authFilePath, this.log, europe);
-    await ayla_api.sign_in()
-      .catch(() => {
-        this.log.debug('Promise Rejected with sign in.');
-      });
-    const devices = await ayla_api.get_devices()
-      .catch(() => {
-        this.log.debug('Promise Rejected with getting devices.');
-      });
-    return devices;
+    const login = new Login(this.log, this.api.user.storagePath(), oAuthCode);
+    try {
+      const status = await login.checkLogin();
+      if (!status) {
+        this.log.error('Error logging in to Shark');
+        return [];
+      }
+      const authFilePath = join(this.api.user.storagePath(), global_vars.FILE);
+      const ayla_api = get_ayla_api(authFilePath, this.log, europe);
+      await ayla_api.sign_in();
+      const devices = await ayla_api.get_devices();
+      return devices;
+    } catch {
+      return [];
+    }
   };
 
   // Restore accessory cache.
-  configureAccessory(accessory: PlatformAccessory) {
+  configureAccessory(accessory: PlatformAccessory): void {
     this.log.info('Loading accessory from cache:', accessory.displayName);
 
     this.accessories.push(accessory);
   }
 
   // Add vacuums to Homebridge.
-  discoverDevices() {
+  discoverDevices(): void {
     const devices: PlatformAccessory[] = [];
     const unusedDeviceAccessories = this.accessories;
 

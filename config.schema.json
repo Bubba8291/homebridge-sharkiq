@@ -10,11 +10,10 @@
         "type": "string",
         "default": "SharkIQ"
       },
-      "authFile": {
-        "title": "SharkClean Auth File",
+      "oAuthCode": {
+        "title": "SharkClean OAuth Code",
         "type": "string",
-        "required": true,
-        "default": ".sharkiq.json"
+        "required": false
       },
       "vacuums": {
         "title": "SharkClean Vacuum Devicess",
@@ -48,11 +47,11 @@
   "layout": [
     {
       "type": "fieldset",
-      "title": "SharkIQ Account Info",
+      "title": "SharkIQ Auth Info",
       "expandable": true,
       "expanded": true,
       "items": [
-        "authFile"
+        "oAuthCode"
       ]
     },
     {
