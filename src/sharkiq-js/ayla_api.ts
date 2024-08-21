@@ -123,7 +123,8 @@ class AylaApi {
       setAuthFile(this._auth_file_path, jsonResponse);
       this._set_credentials(jsonResponse);
       return true;
-    } catch {
+    } catch (error) {
+      this.log.error('Error refreshing auth token:', error);
       this.log.debug('Promise Rejected with refreshin auth.');
       return false;
     }
