@@ -217,7 +217,8 @@ class AylaApi {
     this.log.info('Attempting to refresh access token.');
     const status = await this.refresh_auth();
     if (!status) {
-      this.log.error('Refreshing access token failed. Please check your auth file and recreate it if needed.');
+      this.log.error('Refreshing access token failed. Please check your auth file and delete it to recreate it if needed.');
+      this.log.info('The auth file is located at:', this._auth_file_path);
       this.log.error(this.exit_error_message);
       return false;
     }
