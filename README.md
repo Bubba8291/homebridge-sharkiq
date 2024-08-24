@@ -15,6 +15,8 @@ Contributions are always welcome. I used the [sharkiq](https://github.com/JeffRe
 
 This plguin has only been tested on the `UR250BEXUS` model.
 
+The fastest way to get community support (not for bugs) is to join the [Homebridge Discord server](https://discord.gg/kqNCe2D) and chat in the #sharkiq channel.
+
 ## Install and Setup
 
 ### Step 1.
