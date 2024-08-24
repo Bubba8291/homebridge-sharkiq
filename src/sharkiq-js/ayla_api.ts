@@ -116,7 +116,7 @@ class AylaApi {
       if (status !== 200) {
         this.log.error(`API Error: Unable to refresh auth token. Status Code ${status}`);
         if (jsonResponse['error'] !== undefined) {
-          this.log.error(`Message: ${jsonResponse['error']}`);
+          this.log.error(`Message: ${JSON.stringify(jsonResponse['error'])}`);
         }
         return false;
       }
