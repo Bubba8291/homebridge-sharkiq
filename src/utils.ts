@@ -18,4 +18,8 @@ function subtractSeconds(date: Date, seconds: number): Date {
   return new Date(date.getTime() - seconds * 1000);
 }
 
-export { formatParams, addSeconds, subtractSeconds };
+function isValidDate(d: Date): boolean {
+  return d instanceof Date && !isNaN(d.getTime());
+}
+
+export { formatParams, addSeconds, subtractSeconds, isValidDate };

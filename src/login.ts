@@ -1,6 +1,7 @@
 import { Logger } from 'homebridge';
 import { getAuthFile, setAuthFile, getOAuthData, setOAuthData, removeFile } from './config';
 import { OAuthData } from './type';
+import { addSeconds } from './utils';
 import { global_vars } from './sharkiq-js/const';
 
 import fetch from 'node-fetch';
@@ -101,6 +102,8 @@ export class Login {
       };
       const response2 = await fetch(`${global_vars.LOGIN_URL}/api/v1/token_sign_in`, reqData2);
       const aylaTokenData = await response2.json();
+      const dateNow = new Date();
+      aylaTokenData['expiration'] = addSeconds(dateNow, aylaTokenData['expires_in']);
       const status = setAuthFile(this.auth_file_path, aylaTokenData);
       if (!status) {
         this.log.error('Error saving auth file.');

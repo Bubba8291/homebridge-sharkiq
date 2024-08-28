@@ -5,7 +5,7 @@ import { global_vars } from './const';
 import { SharkIqVacuum } from './sharkiq';
 
 import { getAuthFile, setAuthFile } from '../config';
-import { addSeconds, subtractSeconds } from '../utils';
+import { addSeconds, subtractSeconds, isValidDate } from '../utils';
 import { AuthData } from '../type';
 
 type APIResponse = {
@@ -87,8 +87,8 @@ class AylaApi {
     // Update credentials for cache
     this._access_token = login_result['access_token'];
     this._refresh_token = login_result['refresh_token'];
-    const dateNow = new Date();
-    this._auth_expiration = addSeconds(dateNow, login_result['expires_in']);
+    const _auth_expiration = new Date(login_result['expiration']);
+    this._auth_expiration = isValidDate(_auth_expiration) ? _auth_expiration : null;
     this._is_authed = true;
   }
 
@@ -120,6 +120,8 @@ class AylaApi {
         }
         return false;
       }
+      const dateNow = new Date();
+      jsonResponse['expiration'] = addSeconds(dateNow, jsonResponse['expires_in']);
       setAuthFile(this._auth_file_path, jsonResponse);
       this._set_credentials(jsonResponse);
       return true;
@@ -176,7 +178,7 @@ class AylaApi {
       return true;
     }
     const dateNow = new Date();
-    return dateNow > auth_expiration === true;
+    return (dateNow > auth_expiration) === true;
   }
 
   // Check if the current token is expiring soon
@@ -186,7 +188,7 @@ class AylaApi {
       return true;
     }
     const dateNow = new Date();
-    return dateNow > subtractSeconds(auth_expiration, 600) === true;
+    return (dateNow > subtractSeconds(auth_expiration, 600)) === true;
   }
 
   // Check if auth is valid and renew if expired.
