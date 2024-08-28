@@ -122,9 +122,7 @@ export class SharkIQAccessory {
         const platform = this.platform;
         await this.getFanSpeed()
           .then((power_mode) => {
-            if (power_mode !== null) {
-              service.updateCharacteristic(platform.Characteristic.RotationSpeed, power_mode);
-            }
+            service.updateCharacteristic(platform.Characteristic.RotationSpeed, power_mode);
           })
           .catch(() => {
             this.log.debug('Promise Rejected with getting power mode.');
@@ -217,7 +215,7 @@ export class SharkIQAccessory {
   }
 
   // Get vacuum power for UI
-  async getFanSpeed(): Promise<number | null> {
+  async getFanSpeed(): Promise<number> {
     this.log.debug('Triggering GET Fan Speed');
 
     const mode = this.device.operating_mode();
@@ -231,8 +229,9 @@ export class SharkIQAccessory {
       } else {
         return 60;
       }
+    } else {
+      return 0;
     }
-    return null;
   }
 
   // Set vacuum power from UI (and start/stop vacuum if needed)
