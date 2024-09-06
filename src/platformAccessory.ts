@@ -16,6 +16,7 @@ export class SharkIQAccessory {
     private readonly log: Logger,
     private readonly invertDockedStatus: boolean,
     private readonly dockedUpdateInterval: number,
+    private dockedDelay: number = 0,
   ) {
 
     // Get device serial number
@@ -27,7 +28,7 @@ export class SharkIQAccessory {
     // Vacuum Name - Default is device name
     this.service.setCharacteristic(this.platform.Characteristic.Name, device._name.toString());
 
-    // Vacuum Active
+    // // Vacuum Active
     this.service.getCharacteristic(this.platform.Characteristic.Active)
       .onSet(this.setVacuumActive.bind(this))
       .onGet(this.getVacuumActive.bind(this));
@@ -46,6 +47,8 @@ export class SharkIQAccessory {
     this.dockedStatusService = this.accessory.getService('Vacuum Docked') ||
       this.accessory.addService(this.platform.Service.ContactSensor, 'Vacuum Docked', 'Docked');
     this.dockedStatusService.setCharacteristic(this.platform.Characteristic.Name, device._name.toString() + ' Docked');
+    this.dockedStatusService.getCharacteristic(this.platform.Characteristic.ContactSensorState)
+      .onGet(this.retrieveDockedStatus.bind(this));
 
     // Vacuum Paused Status
     this.vacuumPausedService = this.accessory.getService('Vacuum Paused') ||
@@ -59,51 +62,42 @@ export class SharkIQAccessory {
 
     this.updateStates();
 
-    // Monitor vacuum state
-    this.monitorVacuumState().then(() => {
-      this.monitorVacuumStateInterval();
-    })
-      .catch(() => {
-        this.log.debug('Promise Rejected with first interval update.');
-        this.monitorVacuumStateInterval();
-      });
+    // // Monitor vacuum state
+    // this.monitorVacuumState().then(() => {
+    //   this.monitorVacuumStateInterval();
+    // })
+    //   .catch(() => {
+    //     this.log.debug('Promise Rejected with first interval update.');
+    //     this.monitorVacuumStateInterval();
+    //   });
   }
 
-  // Monitor vacuum state interval function
-  async monitorVacuumStateInterval(): Promise<void> {
-    setInterval(async () => {
-      await this.monitorVacuumState()
-        .catch(() => {
-          this.log.debug('Promise Rejected with interval update.');
-        });
-    }, this.dockedUpdateInterval);
-  }
+  // // Monitor vacuum state interval function
+  // async monitorVacuumStateInterval(): Promise<void> {
+  //   setInterval(async () => {
+  //     await this.monitorVacuumState()
+  //       .catch(() => {
+  //         this.log.debug('Promise Rejected with interval update.');
+  //       });
+  //   }, this.dockedUpdateInterval + this.dockedDelay);
+  // }
 
-  // Monitor vacuum state function
-  async monitorVacuumState(): Promise<void> {
+  async retrieveDockedStatus(): Promise<boolean> {
+    this.log.debug('Triggering GET Docked Status');
+    await this.device.update(Properties.DOCKED_STATUS);
+
+    const docked_status = this.device.docked_status();
     let vacuumDocked = false;
-
-    await this.device.update(Properties.DOCKED_STATUS)
-      .catch(() => {
-        this.log.debug('Promise Rejected with docked status update.');
-      });
-
     if(!this.invertDockedStatus) {
-      vacuumDocked = this.device.get_property_value(Properties.DOCKED_STATUS) === 1;
+      vacuumDocked = docked_status === 1;
     } else {
-      vacuumDocked = this.device.get_property_value(Properties.DOCKED_STATUS) !== 1;
+      vacuumDocked = docked_status !== 1;
     }
-    await this.updateItems(vacuumDocked)
-      .catch(() => {
-        this.log.debug('Promise Rejected with running docked update.');
-      });
 
-
-    this.dockedStatusService.updateCharacteristic(this.platform.Characteristic.ContactSensorState, vacuumDocked);
-
-    this.log.debug('Triggering Vacuum Docked:', vacuumDocked);
+    return vacuumDocked;
   }
 
+<<<<<<< Updated upstream
   // Update docked, active, and paused state
   async updateItems(vacuumDocked: boolean): Promise<void> {
     await this.device.update(Properties.OPERATING_MODE)
@@ -131,7 +125,65 @@ export class SharkIQAccessory {
           });
       }
     }
+=======
+  async retrieveOperatingMode(): Promise<void> {
+    await this.device.update(Properties.OPERATING_MODE);
+    // .then((delay) => {
+    //   this.dockedDelay = delay;
+    // });
+>>>>>>> Stashed changes
   }
+
+  async retrievePowerMode(): Promise<void> {
+    await this.device.update(Properties.POWER_MODE);
+    // .then((delay) => {
+    //   this.dockedDelay = delay;
+    // });
+  }
+
+  // // Monitor vacuum state function
+  // async retrieveVacuumStates(): Promise<void> {
+  //   let vacuumDocked = false;
+
+  //   await this.device.update([Properties.DOCKED_STATUS, Properties.OPERATING_MODE, Properties.POWER_MODE])
+  //     .then((delay) => {
+  //       this.dockedDelay = delay;
+  //     });
+
+  //   const docked_status = this.device.docked_status();
+  //   if(!this.invertDockedStatus) {
+  //     vacuumDocked = docked_status === 1;
+  //   } else {
+  //     vacuumDocked = docked_status !== 1;
+  //   }
+  //   await this.updateItems(vacuumDocked)
+  //     .catch(() => {
+  //       this.log.debug('Promise Rejected with running docked update.');
+  //     });
+
+
+  //   this.dockedStatusService.updateCharacteristic(this.platform.Characteristic.ContactSensorState, vacuumDocked);
+
+  //   this.log.debug('Triggering Vacuum Docked:', vacuumDocked);
+  // }
+
+  // // Update docked, active, and paused state
+  // async updateItems(vacuumDocked: boolean): Promise<void> {
+  //   if (!vacuumDocked) {
+  //     const mode = this.device.operating_mode();
+  //     if (mode === OperatingModes.START || mode === OperatingModes.STOP) {
+  //       const service = this.service;
+  //       const platform = this.platform;
+  //       await this.getFanSpeed()
+  //         .then((power_mode) => {
+  //           service.updateCharacteristic(platform.Characteristic.RotationSpeed, power_mode);
+  //         })
+  //         .catch(() => {
+  //           this.log.debug('Promise Rejected with getting power mode.');
+  //         });
+  //     }
+  //   }
+  // }
 
   // Update paused and active state on switch
   updateStates(): void {
@@ -152,11 +204,13 @@ export class SharkIQAccessory {
   }
 
   // Get paused state
-  getPaused(): boolean {
+  async getPaused(): Promise<boolean> {
     this.log.debug('Triggering GET Paused');
+    await this.retrieveOperatingMode();
 
-    const mode = this.device.operating_mode() === OperatingModes.STOP;
-    if (mode) {
+    const mode = this.device.operating_mode();
+    this.log.debug('State:', mode);
+    if (mode === OperatingModes.STOP) {
       return true;
     } else {
       return false;
@@ -188,7 +242,6 @@ export class SharkIQAccessory {
 
   }
 
-
   // Check if the vacuum is active for UI
   async getVacuumActive(): Promise<boolean> {
     this.log.debug('Triggering GET Vacuum Active');
@@ -219,11 +272,12 @@ export class SharkIQAccessory {
   // Get vacuum power for UI
   async getFanSpeed(): Promise<number | null> {
     this.log.debug('Triggering GET Fan Speed');
+    await this.retrievePowerMode();
 
     const mode = this.device.operating_mode();
     const vacuumActive = mode === OperatingModes.START || mode === OperatingModes.STOP;
     if (vacuumActive) {
-      const power_mode = this.device.get_property_value(Properties.POWER_MODE);
+      const power_mode = this.device.power_mode();
       if (power_mode === PowerModes.MAX) {
         return 90;
       } else if (power_mode === PowerModes.ECO) {
@@ -238,6 +292,7 @@ export class SharkIQAccessory {
   // Set vacuum power from UI (and start/stop vacuum if needed)
   async setFanSpeed(value: CharacteristicValue): Promise<void> {
     this.log.debug('Triggering SET Fan Speed');
+    this.log.debug('Value:', value);
 
     let power_mode = PowerModes.NORMAL;
     if (value === 30) {
@@ -253,7 +308,7 @@ export class SharkIQAccessory {
       this.vacuumPausedService.updateCharacteristic(this.platform.Characteristic.On, false);
       return;
     }
-    const isPaused = this.getPaused();
+    const isPaused = await this.getPaused();
     if (isPaused) {
       await this.device.set_operating_mode(OperatingModes.START)
         .catch(() => {

@@ -40,20 +40,32 @@
         "title": "Docked Update Interval",
         "type": "integer",
         "required": false,
-        "default": 5000
+        "default": 30000
+      },
+      "credentials": {
+        "title": "SharkClean OAuth",
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string",
+            "required": false
+          },
+          "refresh_token": {
+            "title": "Refresh Token",
+            "type": "string",
+            "required": false
+          },
+          "expiration": {
+            "title": "Expiration",
+            "type": "date",
+            "required": false
+          }
+        }
       }
     }
   },
   "layout": [
-    {
-      "type": "fieldset",
-      "title": "SharkIQ Auth Info",
-      "expandable": true,
-      "expanded": true,
-      "items": [
-        "oAuthCode"
-      ]
-    },
     {
       "type": "fieldset",
       "title": "Vacuum Settings",
@@ -81,7 +93,8 @@
         },
         "europe",
         "invertDockedStatus",
-        "dockedUpdateInterval"
+        "dockedUpdateInterval",
+        "oAuthCode"
       ]
     }
   ]

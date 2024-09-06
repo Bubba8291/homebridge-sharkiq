@@ -4,26 +4,32 @@ import { Logger } from 'homebridge';
 import { global_vars } from './const';
 import { SharkIqVacuum } from './sharkiq';
 
+<<<<<<< Updated upstream
 import { getAuthFile, setAuthFile } from '../config';
 import { addSeconds, subtractSeconds } from '../utils';
+=======
+import { getAuthData, setAuthData } from '../config';
+import { addSeconds, subtractSeconds, isValidDate } from '../utils';
+>>>>>>> Stashed changes
 import { AuthData } from '../type';
 
 type APIResponse = {
   status: number;
   response: string;
+  ok: boolean;
 };
 
 // New AylaApi object
-const get_ayla_api = function (auth_file_path: string, log: Logger, europe = false): AylaApi {
+const get_ayla_api = function (config_file_path: string, log: Logger, europe = false): AylaApi {
   if (europe) {
-    return new AylaApi(auth_file_path, global_vars.EU_SHARK_APP_ID, global_vars.EU_SHARK_APP_SECRET, log, europe);
+    return new AylaApi(config_file_path, global_vars.EU_SHARK_APP_ID, global_vars.EU_SHARK_APP_SECRET, log, europe);
   } else {
-    return new AylaApi(auth_file_path, global_vars.SHARK_APP_ID, global_vars.SHARK_APP_SECRET, log, europe);
+    return new AylaApi(config_file_path, global_vars.SHARK_APP_ID, global_vars.SHARK_APP_SECRET, log, europe);
   }
 };
 
 class AylaApi {
-  _auth_file_path: string;
+  _config_file_path: string;
   _access_token: string | null;
   _refresh_token: string | null;
   _auth_expiration: Date | null;
@@ -35,8 +41,8 @@ class AylaApi {
 
 
   // Simple Ayla Networks API wrapper
-  constructor(auth_file_path, app_id, app_secret, log, europe = false) {
-    this._auth_file_path = auth_file_path;
+  constructor(config_file_path, app_id, app_secret, log, europe = false) {
+    this._config_file_path = config_file_path;
     this._access_token = null;
     this._refresh_token = null;
     this._auth_expiration = null;
@@ -74,33 +80,42 @@ class AylaApi {
       return {
         status: statusCode,
         response: responseText,
+        ok: response.ok,
       };
     } catch {
       return {
         status: 500,
         response: '',
+        ok: false,
       };
     }
   }
 
   _set_credentials(login_result: AuthData): void {
     // Update credentials for cache
+<<<<<<< Updated upstream
     this._access_token = login_result['access_token'];
     this._refresh_token = login_result['refresh_token'];
     const dateNow = new Date();
     this._auth_expiration = addSeconds(dateNow, login_result['expires_in']);
+=======
+    this._access_token = login_result.access_token;
+    this._refresh_token = login_result.refresh_token;
+    const _auth_expiration = new Date(login_result.expiration);
+    this._auth_expiration = isValidDate(_auth_expiration) ? _auth_expiration : null;
+>>>>>>> Stashed changes
     this._is_authed = true;
   }
 
   // Sign in with auth file
   async sign_in(): Promise<boolean> {
     this.log.debug('Signing in.');
-    const authFile = await getAuthFile(this._auth_file_path);
-    if (!authFile) {
+    const authData = await getAuthData(this._config_file_path);
+    if (!authData) {
       this.log.error('Auth file not found.');
       return false;
     }
-    this._set_credentials(authFile);
+    this._set_credentials(authData);
     return true;
   }
 
@@ -120,7 +135,13 @@ class AylaApi {
         }
         return false;
       }
+<<<<<<< Updated upstream
       setAuthFile(this._auth_file_path, jsonResponse);
+=======
+      const dateNow = new Date();
+      jsonResponse['expiration'] = addSeconds(dateNow, jsonResponse['expires_in']);
+      setAuthData(this._config_file_path, jsonResponse);
+>>>>>>> Stashed changes
       this._set_credentials(jsonResponse);
       return true;
     } catch {
@@ -216,7 +237,11 @@ class AylaApi {
     this.log.info('Attempting to refresh access token.');
     const status = await this.refresh_auth();
     if (!status) {
+<<<<<<< Updated upstream
       this.log.error('Refreshing access token failed. Please check your auth file and recreate it if needed.');
+=======
+      this.log.error('Refreshing access token failed. Please check your credentials and delete them from the config if needed.');
+>>>>>>> Stashed changes
       this.log.error(this.exit_error_message);
       return false;
     }

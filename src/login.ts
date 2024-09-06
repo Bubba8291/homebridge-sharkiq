@@ -1,5 +1,5 @@
 import { Logger } from 'homebridge';
-import { getAuthFile, setAuthFile, getOAuthData, setOAuthData, removeFile } from './config';
+import { getAuthData, setAuthData, getOAuthData, setOAuthData, removeFile } from './config';
 import { OAuthData } from './type';
 import { global_vars } from './sharkiq-js/const';
 
@@ -10,35 +10,34 @@ import { join } from 'path';
 export class Login {
   public log: Logger;
   public storagePath: string;
-  public authFile: string;
   public oAuthFile: string;
   public oAuthCode: string;
   public app_id: string;
   public app_secret: string;
-  public auth_file_path: string;
+  public config_file: string;
   public oauth_file_path: string;
 
   constructor(log: Logger,
     storagePath: string,
     oAuthCode: string,
+    config_file: string,
     app_id = global_vars.SHARK_APP_ID,
     app_secret = global_vars.SHARK_APP_SECRET,
   ) {
     this.log = log;
     this.storagePath = storagePath;
     this.oAuthCode = oAuthCode;
-    this.authFile = global_vars.FILE;
+    this.config_file = config_file;
     this.oAuthFile = global_vars.OAUTH.FILE;
     this.app_id = app_id;
     this.app_secret = app_secret;
-    this.auth_file_path = join(this.storagePath, this.authFile);
     this.oauth_file_path = join(this.storagePath, this.oAuthFile);
   }
 
   public async checkLogin(): Promise<boolean> {
-    const auth_file = await getAuthFile(this.auth_file_path);
+    const auth_data = await getAuthData(this.config_file);
     const oauth_file = await getOAuthData(this.oauth_file_path);
-    if (!auth_file) {
+    if (!auth_data) {
       if (this.oAuthCode !== '') {
         if (!oauth_file) {
           this.log.error('No OAuth data found with oAuthCode present. Please remove the oAuthCode from the config.');
@@ -69,7 +68,7 @@ export class Login {
   private async login(code: string, oAuthData: OAuthData): Promise<boolean> {
     const data = {
       grant_type: 'authorization_code',
-      client_id: global_vars.SHARK_CLIENT_ID,
+      client_id: global_vars.OAUTH.CLIENT_ID,
       code: code,
       code_verifier: oAuthData.code_verify,
       redirect_uri: global_vars.OAUTH.REDIRECT_URI,
@@ -101,7 +100,13 @@ export class Login {
       };
       const response2 = await fetch(`${global_vars.LOGIN_URL}/api/v1/token_sign_in`, reqData2);
       const aylaTokenData = await response2.json();
+<<<<<<< Updated upstream
       const status = setAuthFile(this.auth_file_path, aylaTokenData);
+=======
+      const dateNow = new Date();
+      aylaTokenData['expiration'] = addSeconds(dateNow, aylaTokenData['expires_in']);
+      const status = setAuthData(this.config_file, aylaTokenData);
+>>>>>>> Stashed changes
       if (!status) {
         this.log.error('Error saving auth file.');
         return false;
@@ -133,7 +138,7 @@ export class Login {
 
     const url = global_vars.OAUTH.AUTH_URL
       + '?response_type=code'
-      + '&client_id='+encodeURIComponent(global_vars.SHARK_CLIENT_ID)
+      + '&client_id='+encodeURIComponent(global_vars.OAUTH.CLIENT_ID)
       + '&state='+encodeURIComponent(oAuthData.state)
       + '&scope='+encodeURIComponent(global_vars.OAUTH.SCOPES)
       + '&redirect_uri='+encodeURIComponent(global_vars.OAUTH.REDIRECT_URI)

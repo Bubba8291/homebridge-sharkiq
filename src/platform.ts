@@ -4,12 +4,9 @@ import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { SharkIQAccessory } from './platformAccessory';
 
 import { Login } from './login';
-import { global_vars } from './sharkiq-js/const';
 
 import { get_ayla_api } from './sharkiq-js/ayla_api';
 import { SharkIqVacuum } from './sharkiq-js/sharkiq';
-
-import { join } from 'path';
 
 // SharkIQPlatform Main Class
 export class SharkIQPlatform implements DynamicPlatformPlugin {
@@ -57,15 +54,15 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
   login = async (): Promise<SharkIqVacuum[]> => {
     const oAuthCode = this.config.oAuthCode || '';
     const europe = this.config.europe || false;
-    const login = new Login(this.log, this.api.user.storagePath(), oAuthCode);
+    const configFilePath = this.api.user.configPath();
+    const login = new Login(this.log, this.api.user.storagePath(), oAuthCode, configFilePath);
     try {
       const status = await login.checkLogin();
       if (!status) {
         this.log.error('Error logging in to Shark');
         return [];
       }
-      const authFilePath = join(this.api.user.storagePath(), global_vars.FILE);
-      const ayla_api = get_ayla_api(authFilePath, this.log, europe);
+      const ayla_api = get_ayla_api(configFilePath, this.log, europe);
       await ayla_api.sign_in();
       const devices = await ayla_api.get_devices();
       return devices;
