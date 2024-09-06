@@ -97,41 +97,11 @@ export class SharkIQAccessory {
     return vacuumDocked;
   }
 
-<<<<<<< Updated upstream
-  // Update docked, active, and paused state
-  async updateItems(vacuumDocked: boolean): Promise<void> {
-    await this.device.update(Properties.OPERATING_MODE)
-      .catch(() => {
-        this.log.debug('Promise Rejected with operating mode update.');
-      });
-
-    if (!vacuumDocked) {
-      const mode = this.device.operating_mode();
-      if (mode === OperatingModes.START || mode === OperatingModes.STOP) {
-        await this.device.update(Properties.POWER_MODE)
-          .catch(() => {
-            this.log.debug('Promise Rejected with power mode update.');
-          });
-        const service = this.service;
-        const platform = this.platform;
-        await this.getFanSpeed()
-          .then((power_mode) => {
-            if (power_mode !== null) {
-              service.updateCharacteristic(platform.Characteristic.RotationSpeed, power_mode);
-            }
-          })
-          .catch(() => {
-            this.log.debug('Promise Rejected with getting power mode.');
-          });
-      }
-    }
-=======
   async retrieveOperatingMode(): Promise<void> {
     await this.device.update(Properties.OPERATING_MODE);
     // .then((delay) => {
     //   this.dockedDelay = delay;
     // });
->>>>>>> Stashed changes
   }
 
   async retrievePowerMode(): Promise<void> {

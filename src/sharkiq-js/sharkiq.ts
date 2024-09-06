@@ -162,15 +162,6 @@ class SharkIqVacuum {
     const url = this.update_url;
     try {
       if (!full_update && property_list.length !== 0) {
-<<<<<<< Updated upstream
-        for (let i = 0; i < property_list.length; i++) {
-          const property = property_list[i];
-          const params = { 'names': 'GET_' + property };
-          const auth_header = await this.ayla_api.auth_header();
-          const resp = await this.ayla_api.makeRequest('GET', url + formatParams(params), null, auth_header);
-          if (resp.status !== 200) {
-            this.log.error('Error getting property values.');
-=======
         const params = new URLSearchParams();
         property_list.forEach((property) => {
           params.append('names[]', `GET_${property}`);
@@ -217,7 +208,6 @@ class SharkIqVacuum {
             if (properties['error'] !== undefined) {
               this.log.debug(`Error Message: ${JSON.stringify(properties['error'])}`);
             }
->>>>>>> Stashed changes
             const status = await this.ayla_api.attempt_refresh(attempt);
             if (!status && attempt === 1) {
               return ERROR_DELAY;
@@ -228,37 +218,14 @@ class SharkIqVacuum {
             this._do_update(full_update, properties);
             return 0;
           }
-<<<<<<< Updated upstream
-          const properties = JSON.parse(resp.response);
-          this._do_update(full_update, properties);
-=======
         } catch {
           this.log.warn('Error parsing JSON response for properties.');
           return ERROR_DELAY;
->>>>>>> Stashed changes
         }
-      } else {
-        const auth_header = await this.ayla_api.auth_header();
-        const resp = await this.ayla_api.makeRequest('GET', url, null, auth_header);
-        if (resp.status !== 200) {
-          this.log.error('Error getting property values.');
-          const status = await this.ayla_api.attempt_refresh(attempt);
-          if (!status && attempt === 1) {
-            return;
-          } else {
-            await this.update(property_list, attempt + 1);
-            return;
-          }
-        }
-        const properties = JSON.parse(resp.response);
-        this._do_update(full_update, properties);
       }
     } catch {
       this.log.debug('Promise Rejected with updating properties.');
-<<<<<<< Updated upstream
-=======
       return ERROR_DELAY;
->>>>>>> Stashed changes
     }
   }
 

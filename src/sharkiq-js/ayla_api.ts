@@ -4,13 +4,8 @@ import { Logger } from 'homebridge';
 import { global_vars } from './const';
 import { SharkIqVacuum } from './sharkiq';
 
-<<<<<<< Updated upstream
-import { getAuthFile, setAuthFile } from '../config';
-import { addSeconds, subtractSeconds } from '../utils';
-=======
 import { getAuthData, setAuthData } from '../config';
 import { addSeconds, subtractSeconds, isValidDate } from '../utils';
->>>>>>> Stashed changes
 import { AuthData } from '../type';
 
 type APIResponse = {
@@ -93,17 +88,10 @@ class AylaApi {
 
   _set_credentials(login_result: AuthData): void {
     // Update credentials for cache
-<<<<<<< Updated upstream
-    this._access_token = login_result['access_token'];
-    this._refresh_token = login_result['refresh_token'];
-    const dateNow = new Date();
-    this._auth_expiration = addSeconds(dateNow, login_result['expires_in']);
-=======
     this._access_token = login_result.access_token;
     this._refresh_token = login_result.refresh_token;
     const _auth_expiration = new Date(login_result.expiration);
     this._auth_expiration = isValidDate(_auth_expiration) ? _auth_expiration : null;
->>>>>>> Stashed changes
     this._is_authed = true;
   }
 
@@ -135,13 +123,9 @@ class AylaApi {
         }
         return false;
       }
-<<<<<<< Updated upstream
-      setAuthFile(this._auth_file_path, jsonResponse);
-=======
       const dateNow = new Date();
       jsonResponse['expiration'] = addSeconds(dateNow, jsonResponse['expires_in']);
       setAuthData(this._config_file_path, jsonResponse);
->>>>>>> Stashed changes
       this._set_credentials(jsonResponse);
       return true;
     } catch {
@@ -237,11 +221,7 @@ class AylaApi {
     this.log.info('Attempting to refresh access token.');
     const status = await this.refresh_auth();
     if (!status) {
-<<<<<<< Updated upstream
-      this.log.error('Refreshing access token failed. Please check your auth file and recreate it if needed.');
-=======
       this.log.error('Refreshing access token failed. Please check your credentials and delete them from the config if needed.');
->>>>>>> Stashed changes
       this.log.error(this.exit_error_message);
       return false;
     }
