@@ -240,7 +240,7 @@ export class SharkIQAccessory {
   }
 
   // Get vacuum power for UI
-  async getFanSpeed(): Promise<number | null> {
+  async getFanSpeed(): Promise<number> {
     this.log.debug('Triggering GET Fan Speed');
     await this.retrievePowerMode();
 
@@ -255,8 +255,9 @@ export class SharkIQAccessory {
       } else {
         return 60;
       }
+    } else {
+      return 0;
     }
-    return null;
   }
 
   // Set vacuum power from UI (and start/stop vacuum if needed)
