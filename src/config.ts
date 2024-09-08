@@ -2,7 +2,6 @@ import { promises as fs } from 'fs';
 import crypto from 'crypto';
 
 import { AuthData, OAuthData } from './type';
-import { PLATFORM_NAME } from './settings';
 import { global_vars } from './sharkiq-js/const';
 
 export async function getAuthData(authFilePath: string): Promise<AuthData> {

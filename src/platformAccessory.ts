@@ -109,24 +109,24 @@ export class SharkIQAccessory {
     // .then((delay) => {
     //   this.dockedDelay = delay;
     // });
-//     if (!vacuumDocked) {
-//       const mode = this.device.operating_mode();
-//       if (mode === OperatingModes.START || mode === OperatingModes.STOP) {
-//         await this.device.update(Properties.POWER_MODE)
-//           .catch(() => {
-//             this.log.debug('Promise Rejected with power mode update.');
-//           });
-//         const service = this.service;
-//         const platform = this.platform;
-//         await this.getFanSpeed()
-//           .then((power_mode) => {
-//             service.updateCharacteristic(platform.Characteristic.RotationSpeed, power_mode);
-//           })
-//           .catch(() => {
-//             this.log.debug('Promise Rejected with getting power mode.');
-//           });
-//       }
-//     }
+    //     if (!vacuumDocked) {
+    //       const mode = this.device.operating_mode();
+    //       if (mode === OperatingModes.START || mode === OperatingModes.STOP) {
+    //         await this.device.update(Properties.POWER_MODE)
+    //           .catch(() => {
+    //             this.log.debug('Promise Rejected with power mode update.');
+    //           });
+    //         const service = this.service;
+    //         const platform = this.platform;
+    //         await this.getFanSpeed()
+    //           .then((power_mode) => {
+    //             service.updateCharacteristic(platform.Characteristic.RotationSpeed, power_mode);
+    //           })
+    //           .catch(() => {
+    //             this.log.debug('Promise Rejected with getting power mode.');
+    //           });
+    //       }
+    //     }
   }
 
   // // Monitor vacuum state function
