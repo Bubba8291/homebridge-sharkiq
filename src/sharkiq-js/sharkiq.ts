@@ -223,7 +223,7 @@ class SharkIqVacuum {
           return ERROR_DELAY;
         }
       }
-    } catch {
+    } catch (e) {
       this.log.debug('Promise Rejected with updating properties.');
       return ERROR_DELAY;
     }

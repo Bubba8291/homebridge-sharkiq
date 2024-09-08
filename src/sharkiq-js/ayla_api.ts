@@ -120,7 +120,7 @@ class AylaApi {
       if (status !== 200) {
         this.log.error(`API Error: Unable to refresh auth token. Status Code ${status}`);
         if (jsonResponse['error'] !== undefined) {
-          this.log.error(`Message: ${jsonResponse['error']}`);
+          this.log.error(`Message: ${JSON.stringify(jsonResponse['error'])}`);
         }
         return false;
       }
@@ -129,7 +129,8 @@ class AylaApi {
       await setAuthData(this._auth_file_path, jsonResponse);
       this._set_credentials(jsonResponse);
       return true;
-    } catch {
+    } catch (error) {
+      this.log.error('Error refreshing auth token:', error);
       this.log.debug('Promise Rejected with refreshin auth.');
       return false;
     }
@@ -181,7 +182,7 @@ class AylaApi {
       return true;
     }
     const dateNow = new Date();
-    return dateNow > auth_expiration === true;
+    return (dateNow > auth_expiration) === true;
   }
 
   // Check if the current token is expiring soon
@@ -191,7 +192,7 @@ class AylaApi {
       return true;
     }
     const dateNow = new Date();
-    return dateNow > subtractSeconds(auth_expiration, 600) === true;
+    return (dateNow > subtractSeconds(auth_expiration, 600)) === true;
   }
 
   // Check if auth is valid and renew if expired.
@@ -222,7 +223,8 @@ class AylaApi {
     this.log.info('Attempting to refresh access token.');
     const status = await this.refresh_auth();
     if (!status) {
-      this.log.error('Refreshing access token failed. Please check your credentials and delete them from the config if needed.');
+      this.log.error('Refreshing access token failed. Please check your auth file and delete it to recreate it if needed.');
+      this.log.info('The auth file is located at:', this._auth_file_path);
       this.log.error(this.exit_error_message);
       return false;
     }

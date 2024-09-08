@@ -15,6 +15,8 @@ Contributions are always welcome. I used the [sharkiq](https://github.com/JeffRe
 
 This plguin has only been tested on the `UR250BEXUS` model.
 
+The fastest way to get community support (not for bugs) is to join the [Homebridge Discord server](https://discord.gg/kqNCe2D) and chat in the #sharkiq channel.
+
 ## Install and Setup
 
 ### Step 1.
@@ -46,7 +48,7 @@ Configure Homebridge. The config file for SharkIQ should include:
 The OAuth Code value is for creating and storing the login for the plugin. Here is how to sign in.
 1. Run Homebridge with the updated plugin version.
 2. Open the Homebridge logs
-3. Open the URL in the console printed by homebridge-sharkiq
+3. Open the URL in the console printed by homebridge-sharkiq. Safari will not work due to the way Safari handles the results of the login
 4. Before you login, open up developer tools in your browser (inspect element), and navigate to the network tab
 5. Enter your login info, and press continue
 6. Open the request with the uri of `/authorize/resume` that shows up and view the headers
