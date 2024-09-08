@@ -10,10 +10,15 @@
         "type": "string",
         "default": "SharkIQ"
       },
-      "oAuthCode": {
-        "title": "SharkClean OAuth Code",
+      "email": {
+        "title": "SharkClean Account Email",
         "type": "string",
-        "required": false
+        "required": true
+      },
+      "password": {
+        "title": "SharkClean Account Password",
+        "type": "string",
+        "required": true
       },
       "vacuums": {
         "title": "SharkClean Vacuum Devicess",
@@ -41,31 +46,20 @@
         "type": "integer",
         "required": false,
         "default": 30000
-      },
-      "credentials": {
-        "title": "SharkClean OAuth",
-        "type": "object",
-        "properties": {
-          "access_token": {
-            "title": "Access Token",
-            "type": "string",
-            "required": false
-          },
-          "refresh_token": {
-            "title": "Refresh Token",
-            "type": "string",
-            "required": false
-          },
-          "expiration": {
-            "title": "Expiration",
-            "type": "date",
-            "required": false
-          }
-        }
       }
     }
   },
   "layout": [
+    {
+      "type": "fieldset",
+      "title": "SharkIQ Account Info",
+      "expandable": true,
+      "expanded": true,
+      "items": [
+        "email",
+        "password"
+      ]
+    },
     {
       "type": "fieldset",
       "title": "Vacuum Settings",
@@ -93,8 +87,7 @@
         },
         "europe",
         "invertDockedStatus",
-        "dockedUpdateInterval",
-        "oAuthCode"
+        "dockedUpdateInterval"
       ]
     }
   ]

@@ -1,72 +1,167 @@
 import { Logger } from 'homebridge';
-import { getAuthData, setAuthData, getOAuthData, setOAuthData, removeFile } from './config';
-import { OAuthData } from './type';
-import { addSeconds } from './utils';
-import { global_vars } from './sharkiq-js/const';
-
+import { setTimeout } from 'node:timers/promises';
 import fetch from 'node-fetch';
-import crypto from 'crypto';
-import { join } from 'path';
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+
+import { global_vars } from './sharkiq-js/const';
+import { getAuthData, setAuthData, getOAuthData, removeFile, generateURL } from './config';
+import { addSeconds } from './utils';
+import { OAuthData } from './type';
 
 export class Login {
+  private oAuthCode = '';
+
   public log: Logger;
-  public storagePath: string;
-  public oAuthFile: string;
-  public oAuthCode: string;
+  public auth_file: string;
+  public oauth_file: string;
+  public email: string;
+  public password: string;
   public app_id: string;
   public app_secret: string;
-  public config_file: string;
-  public oauth_file_path: string;
 
   constructor(log: Logger,
-    storagePath: string,
-    oAuthCode: string,
-    config_file: string,
+    auth_file: string,
+    oauth_file: string,
+    email: string,
+    password: string,
     app_id = global_vars.SHARK_APP_ID,
     app_secret = global_vars.SHARK_APP_SECRET,
   ) {
     this.log = log;
-    this.storagePath = storagePath;
-    this.oAuthCode = oAuthCode;
-    this.config_file = config_file;
-    this.oAuthFile = global_vars.OAUTH.FILE;
+    this.auth_file = auth_file;
+    this.oauth_file = oauth_file;
+    this.email = email;
+    this.password = password;
     this.app_id = app_id;
     this.app_secret = app_secret;
-    this.oauth_file_path = join(this.storagePath, this.oAuthFile);
   }
 
-  public async checkLogin(): Promise<boolean> {
-    const auth_data = await getAuthData(this.config_file);
-    const oauth_file = await getOAuthData(this.oauth_file_path);
-    if (!auth_data) {
-      if (this.oAuthCode !== '') {
-        if (!oauth_file) {
-          this.log.error('No OAuth data found with oAuthCode present. Please remove the oAuthCode from the config.');
-          return false;
-        }
-        const status = await this.login(this.oAuthCode, oauth_file);
-        if (!status) {
-          this.log.error('Error logging in to Shark');
-          return false;
-        } else {
-          this.log.info('Successfully logged in to Shark');
-          return true;
-        }
-      }
-      const url = await this.generateURL();
-      if (!url) {
-        this.log.error('Error generating Shark login URL');
-        return false;
-      }
-      this.log.info('Please visit the following URL to login to Shark:', url);
-      return false;
-    } else {
+  public async checkLogin(): Promise<void> {
+    try {
+      await getAuthData(this.auth_file);
       this.log.debug('Already logged in to Shark');
-      return true;
+    } catch {
+      this.log.debug('Not logged in to Shark');
+      const email = this.email;
+      const password = this.password;
+
+      try {
+        const url = await generateURL(this.oauth_file);
+
+        await this.login(email, password, url);
+        if (this.oAuthCode === '') {
+          return Promise.reject('Error: No OAuth code found');
+        } else {
+          const ouath_data = await getOAuthData(this.oauth_file);
+          await this.loginCallback(this.oAuthCode, ouath_data);
+        }
+      } catch (error) {
+        return Promise.reject(`${error}`);
+      }
     }
   }
 
-  private async login(code: string, oAuthData: OAuthData): Promise<boolean> {
+  private async login(email: string, password: string, url: string): Promise<void> {
+    const stealth = StealthPlugin();
+
+    puppeteer.use(stealth);
+
+    const headless = true;
+
+    this.log.debug('Headless:', headless);
+    let error = '';
+    try {
+      const browser = await puppeteer.launch({
+        headless: headless,
+        targetFilter: (target) => target.type() !== 'other',
+      });
+      this.log.debug('Opening chromium browser...');
+      const page = await browser.newPage();
+      const pages = await browser.pages();
+      pages[0].close();
+      this.log.debug('Navigating to Shark login page...');
+      await page.goto(url, { waitUntil: 'domcontentloaded' });
+
+      page.on('response', async (response) => {
+        if (response.url().includes('login?')) {
+          this.log.debug('Retrieving login response...');
+          if (!response.ok() && ![301, 302].includes(response.status())) {
+            this.log.debug('Error logging in: HTTP', response.status());
+            await setTimeout(1000);
+            await page.screenshot({ path: 'login_error.png' });
+            const errorMessages = await page.$$eval('span[class="ulp-input-error-message"]', (el) => el.map((x) => x.innerText.trim()));
+            const promptAlert = await page.$('div[id="prompt-alert"]');
+            if (promptAlert) {
+              const alertP = await promptAlert.$('p');
+              if (alertP) {
+                const alertText = await alertP.evaluate((el) => el.textContent?.trim());
+                if (alertText) {
+                  errorMessages.push(alertText);
+                }
+              }
+            }
+            error = errorMessages.join(', ');
+            await browser.close();
+          }
+        } else if (response.url().includes('resume?')) {
+          this.log.debug('Retrieving callback response...');
+          const headers = response.headers();
+          const queries = headers.location.split('?');
+          if (queries.length > 1) {
+            const code = queries[1].split('&').find((query: string) => query.includes('code='));
+            if (code) {
+              this.oAuthCode = code.slice(5);
+            }
+            await browser.close();
+          }
+        }
+      });
+
+      if (headless) {
+        this.log.debug('Inputing login info...');
+        await page.waitForSelector('button[name="action"]');
+        await setTimeout(1000);
+
+        await page.waitForSelector('input[inputMode="email"]');
+        await page.type('input[inputMode="email"]', email);
+
+        await setTimeout(1000);
+        await page.type('input[type="password"]', password);
+        let verified = false;
+        let attempts = 0;
+        while (!verified) {
+          await setTimeout(5000);
+          const captchaInput = await page.$('input[name="captcha"]');
+          const needsCaptcha = await captchaInput?.$eval('input[name="captcha"]', (el) => el.value === '');
+          if (!needsCaptcha) {
+            verified = true;
+          } else {
+            attempts++;
+            if (attempts > 3) {
+              error = `Unable to verify captcha after ${attempts} attempts`;
+              await browser.close();
+            } else {
+              this.log.debug('Captcha not verified. Attempt #', attempts);
+              const checkbox = await page.$('input[type="checkbox"]');
+              if (checkbox) {
+                await checkbox.click();
+              }
+            }
+          }
+        }
+        await page.click('button[name="action"]');
+        await setTimeout(5000);
+      }
+    } catch (error) {
+      return Promise.reject(`Error: ${error}`);
+    }
+    if (error !== '') {
+      return Promise.reject(`Error: ${error}`);
+    }
+  }
+
+  private async loginCallback(code: string, oAuthData: OAuthData): Promise<void> {
     const data = {
       grant_type: 'authorization_code',
       client_id: global_vars.OAUTH.CLIENT_ID,
@@ -75,86 +170,52 @@ export class Login {
       redirect_uri: global_vars.OAUTH.REDIRECT_URI,
     };
 
-    try {
-      const reqData = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Auth0-Client': global_vars.OAUTH.AUTH0_CLIENT,
-        },
-        body: JSON.stringify(data),
-      };
-
-      const response = await fetch(global_vars.OAUTH.TOKEN_URL, reqData);
-      const tokenData = await response.json();
-
-      const reqData2 = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          'app_id': this.app_id,
-          'app_secret': this.app_secret,
-          'token': tokenData.id_token,
-        }),
-      };
-      const response2 = await fetch(`${global_vars.LOGIN_URL}/api/v1/token_sign_in`, reqData2);
-      const aylaTokenData = await response2.json();
-      const dateNow = new Date();
-      aylaTokenData['expiration'] = addSeconds(dateNow, aylaTokenData['expires_in']);
-      const status = setAuthData(this.config_file, aylaTokenData);
-      if (!status) {
-        this.log.error('Error saving auth file.');
-        return false;
-      }
-      await removeFile(this.oauth_file_path);
-      return true;
-    } catch (error) {
-      this.log.error('Error: ' + error);
-      return false;
-    }
-  }
-
-  private async generateURL(): Promise<string | null> {
-    const state = this.generateRandomString(43);
-    const code_verify = this.generateRandomString(43);
-    const code_challenge = crypto.createHash('sha256').update(code_verify).digest('base64')
-      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-    const oAuthData = {
-      state: state,
-      code_verify: code_verify,
-      code_challenge: code_challenge,
+    const reqData = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Auth0-Client': global_vars.OAUTH.AUTH0_CLIENT,
+      },
+      body: JSON.stringify(data),
     };
+    this.log.debug('Request Data', JSON.stringify(data));
 
-    const status = await setOAuthData(this.oauth_file_path, oAuthData);
-    if (!status) {
-      return null;
+    const response = await fetch(global_vars.OAUTH.TOKEN_URL, reqData);
+    if (!response.ok) {
+      return Promise.reject('Unable to get token data. HTTP ' + response.status);
     }
+    const tokenData = await response.json();
+    this.log.debug('Token Data:', JSON.stringify(tokenData));
 
-    const url = global_vars.OAUTH.AUTH_URL
-      + '?response_type=code'
-      + '&client_id='+encodeURIComponent(global_vars.OAUTH.CLIENT_ID)
-      + '&state='+encodeURIComponent(oAuthData.state)
-      + '&scope='+encodeURIComponent(global_vars.OAUTH.SCOPES)
-      + '&redirect_uri='+encodeURIComponent(global_vars.OAUTH.REDIRECT_URI)
-      + '&code_challenge='+encodeURIComponent(oAuthData.code_challenge)
-      + '&code_challenge_method=S256'
-      + '&ui_locales=en'
-      + '&auth0Client='+ global_vars.OAUTH.AUTH0_CLIENT;
-
-    return url;
-  }
-
-  private generateRandomString(length: number): string {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    for (let i = 0; i < length; i++) {
-      const randomIndex = Math.floor(Math.random() * characters.length);
-      result += characters.charAt(randomIndex);
+    const reqData2 = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        'app_id': this.app_id,
+        'app_secret': this.app_secret,
+        'token': tokenData.id_token,
+      }),
+    };
+    const response2 = await fetch(`${global_vars.LOGIN_URL}/api/v1/token_sign_in`, reqData2);
+    if (!response2.ok) {
+      return Promise.reject('Unable to get authorization tokens. HTTP ' + response2.status);
     }
-    return result;
+    const aylaTokenData = await response2.json();
+    const dateNow = new Date();
+    aylaTokenData['expiration'] = addSeconds(dateNow, aylaTokenData['expires_in']);
+    this.log.debug('Setting auth data...', JSON.stringify(aylaTokenData));
+    try {
+      await setAuthData(this.auth_file, aylaTokenData);
+    } catch (error) {
+      return Promise.reject(`${error}`);
+    }
+    try {
+      await removeFile(this.oauth_file);
+    } catch {
+      return;
+    }
   }
 
 }

@@ -1,4 +1,5 @@
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
+import { join } from 'path';
 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { SharkIQAccessory } from './platformAccessory';
@@ -7,6 +8,7 @@ import { Login } from './login';
 
 import { get_ayla_api } from './sharkiq-js/ayla_api';
 import { SharkIqVacuum } from './sharkiq-js/sharkiq';
+import { global_vars } from './sharkiq-js/const';
 
 // SharkIQPlatform Main Class
 export class SharkIQPlatform implements DynamicPlatformPlugin {
@@ -44,7 +46,7 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
         this.discoverDevices();
       })
         .catch((error) => {
-          log.error('Error with login. Please check logs:');
+          log.error('Error with login.');
           log.error(error);
         });
     });
@@ -52,22 +54,24 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
 
   // Attempt to login and fetch devices.
   login = async (): Promise<SharkIqVacuum[]> => {
-    const oAuthCode = this.config.oAuthCode || '';
     const europe = this.config.europe || false;
-    const configFilePath = this.api.user.configPath();
-    const login = new Login(this.log, this.api.user.storagePath(), oAuthCode, configFilePath);
+    const storagePath = this.api.user.storagePath();
+    const auth_file = join(storagePath, global_vars.FILE);
+    const oauth_file = join(storagePath, global_vars.OAUTH.FILE);
+    const email = this.config.email;
+    const password = this.config.password;
+    if (!email || typeof email !== 'string' || !password || typeof password !== 'string') {
+      return Promise.reject('Error: Email and password must be present in the config');
+    }
+    const login = new Login(this.log, auth_file, oauth_file, email, password);
     try {
-      const status = await login.checkLogin();
-      if (!status) {
-        this.log.error('Error logging in to Shark');
-        return [];
-      }
-      const ayla_api = get_ayla_api(configFilePath, this.log, europe);
+      await login.checkLogin();
+      const ayla_api = get_ayla_api(auth_file, this.log, europe);
       await ayla_api.sign_in();
       const devices = await ayla_api.get_devices();
       return devices;
-    } catch {
-      return [];
+    } catch (error) {
+      return Promise.reject(`${error}`);
     }
   };
 

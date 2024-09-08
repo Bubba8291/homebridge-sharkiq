@@ -158,9 +158,7 @@ export class SharkIQAccessory {
   // Update paused and active state on switch
   updateStates(): void {
     const mode = this.device.operating_mode();
-    if (mode === OperatingModes.START) {
-      this.service.updateCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.ACTIVE);
-    } else if (mode === OperatingModes.STOP) {
+    if (mode === OperatingModes.START || mode === OperatingModes.STOP) {
       this.service.updateCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.ACTIVE);
     } else {
       this.service.updateCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.INACTIVE);
