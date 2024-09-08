@@ -4,8 +4,8 @@ const global_vars = {
   LOGIN_URL: 'https://user-field-39a9391a.aylanetworks.com',
   SHARK_APP_ID: 'ios_shark_prod-3A-id',
   SHARK_APP_SECRET: 'ios_shark_prod-74tFWGNg34LQCmR0m45SsThqrqs',
-  SHARK_CLIENT_ID: 'wsguxrqm77mq4LtrTrwg8ZJUxmSrexGi',
   OAUTH: {
+    CLIENT_ID: 'wsguxrqm77mq4LtrTrwg8ZJUxmSrexGi',
     AUTH_URL: 'https://login.sharkninja.com/authorize',
     TOKEN_URL: 'https://login.sharkninja.com/oauth/token',
     REDIRECT_URI: 'com.sharkninja.shark://login.sharkninja.com/ios/com.sharkninja.shark/callback',

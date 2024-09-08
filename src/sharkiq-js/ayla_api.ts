@@ -4,13 +4,14 @@ import { Logger } from 'homebridge';
 import { global_vars } from './const';
 import { SharkIqVacuum } from './sharkiq';
 
-import { getAuthFile, setAuthFile } from '../config';
+import { getAuthData, setAuthData } from '../config';
 import { addSeconds, subtractSeconds, isValidDate } from '../utils';
 import { AuthData } from '../type';
 
 type APIResponse = {
   status: number;
   response: string;
+  ok: boolean;
 };
 
 // New AylaApi object
@@ -74,20 +75,22 @@ class AylaApi {
       return {
         status: statusCode,
         response: responseText,
+        ok: response.ok,
       };
     } catch {
       return {
         status: 500,
         response: '',
+        ok: false,
       };
     }
   }
 
   _set_credentials(login_result: AuthData): void {
     // Update credentials for cache
-    this._access_token = login_result['access_token'];
-    this._refresh_token = login_result['refresh_token'];
-    const _auth_expiration = new Date(login_result['expiration']);
+    this._access_token = login_result.access_token;
+    this._refresh_token = login_result.refresh_token;
+    const _auth_expiration = new Date(login_result.expiration);
     this._auth_expiration = isValidDate(_auth_expiration) ? _auth_expiration : null;
     this._is_authed = true;
   }
@@ -95,13 +98,14 @@ class AylaApi {
   // Sign in with auth file
   async sign_in(): Promise<boolean> {
     this.log.debug('Signing in.');
-    const authFile = await getAuthFile(this._auth_file_path);
-    if (!authFile) {
-      this.log.error('Auth file not found.');
+    try {
+      const authData = await getAuthData(this._auth_file_path);
+      this._set_credentials(authData);
+      return true;
+    } catch (error) {
+      this.log.error(`${error}`);
       return false;
     }
-    this._set_credentials(authFile);
-    return true;
   }
 
   // Refresh auth token
@@ -122,7 +126,7 @@ class AylaApi {
       }
       const dateNow = new Date();
       jsonResponse['expiration'] = addSeconds(dateNow, jsonResponse['expires_in']);
-      setAuthFile(this._auth_file_path, jsonResponse);
+      await setAuthData(this._auth_file_path, jsonResponse);
       this._set_credentials(jsonResponse);
       return true;
     } catch (error) {
@@ -259,7 +263,7 @@ class AylaApi {
       return d;
     } catch {
       this.log.debug('Promise Rejected with list devices.');
-      return [];
+      return Promise.reject('Error: Unable to list devices.');
     }
   }
 
@@ -277,9 +281,9 @@ class AylaApi {
         }
       }
       return devices;
-    } catch {
-      this.log.debug('Promise Rejected with getting devices.');
-      return [];
+    } catch (error) {
+      this.log.error(`${error}`);
+      return Promise.reject('Error: Unable to get devices.');
     }
   }
 }

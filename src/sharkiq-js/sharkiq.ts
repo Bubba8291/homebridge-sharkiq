@@ -1,4 +1,3 @@
-import { formatParams } from '../utils';
 import { global_vars } from './const';
 import { AylaApi } from './ayla_api';
 import { OperatingModes, PowerModes, Properties } from './properties';
@@ -14,6 +13,9 @@ function _clean_property_name(raw_property_name): string {
     return raw_property_name;
   }
 }
+
+const ERROR_DELAY = 10000;
+const TIMEOUT_DELAY = 30000;
 
 class SharkIqVacuum {
   ayla_api: AylaApi;
@@ -78,6 +80,16 @@ class SharkIqVacuum {
     return this.get_property_value(Properties.OPERATING_MODE);
   }
 
+  // Get current docked status
+  docked_status(): number {
+    return this.get_property_value(Properties.DOCKED_STATUS);
+  }
+
+  // Get current power mode
+  power_mode(): number {
+    return this.get_property_value(Properties.POWER_MODE);
+  }
+
   // Update vacuum details such as the model and serial number.
   _update_metadata(): void {
     const model_and_serial = this.get_property_value(Properties.DEVICE_SERIAL_NUMBER);
@@ -117,8 +129,9 @@ class SharkIqVacuum {
     try {
       const auth_header = await this.ayla_api.auth_header();
       const resp = await this.ayla_api.makeRequest('POST', end_point, data, auth_header);
-      if (resp.status !== 200) {
-        this.log.error('Error setting property value.');
+      if (resp.ok !== true) {
+        this.log.warn('Error setting property value:', property_name, value);
+        this.log.debug(`API Error: ${resp.response}`);
         const status = await this.ayla_api.attempt_refresh(attempt);
         if (!status && attempt === 1) {
           return;
@@ -139,7 +152,7 @@ class SharkIqVacuum {
   }
 
   // Get properties
-  async update(property_list, attempt = 0): Promise<void> {
+  async update(property_list, attempt = 0): Promise<number> {
     if (property_list) {
       if (!Array.isArray(property_list)) {
         property_list = [property_list];
@@ -149,57 +162,70 @@ class SharkIqVacuum {
     const url = this.update_url;
     try {
       if (!full_update && property_list.length !== 0) {
-        for (let i = 0; i < property_list.length; i++) {
-          const property = property_list[i];
-          const params = { 'names': 'GET_' + property };
-          const auth_header = await this.ayla_api.auth_header();
-          const resp = await this.ayla_api.makeRequest('GET', url + formatParams(params), null, auth_header);
-          try {
-            const properties = JSON.parse(resp.response);
-            if (resp.status !== 200) {
-              this.log.error('Error getting property value', property);
-              if (properties['error'] !== undefined) {
-                this.log.error(`Message: ${JSON.stringify(properties['error'])}`);
-              }
-              const status = await this.ayla_api.attempt_refresh(attempt);
-              if (!status && attempt === 1) {
-                return;
-              } else {
-                await this.update(property_list, attempt + 1);
-                return;
-              }
+        const params = new URLSearchParams();
+        property_list.forEach((property) => {
+          params.append('names[]', `GET_${property}`);
+        });
+        const auth_header = await this.ayla_api.auth_header();
+        const resp = await this.ayla_api.makeRequest('GET', `${url}?${params.toString()}`, null, auth_header);
+        try {
+          const properties = JSON.parse(resp.response);
+          if (resp.status === 429) {
+            this.log.debug('API Error: Too many requests');
+            this.log.debug('Waiting an extra 30 seconds before retrying...');
+            return TIMEOUT_DELAY;
+          } else if (resp.ok !== true) {
+            this.log.warn('Error getting property values', property_list.join(', '));
+            if (properties['error'] !== undefined) {
+              this.log.debug(`Error Message: ${JSON.stringify(properties['error'])}`);
             }
+            const status = await this.ayla_api.attempt_refresh(attempt);
+            if (!status && attempt === 1) {
+              return ERROR_DELAY;
+            } else {
+              return await this.update(property_list, attempt + 1);
+            }
+          } else {
             this._do_update(full_update, properties);
-          } catch {
-            this.log.error('Error parsing JSON response for property: ' + property);
+            return 0;
           }
+        } catch (e) {
+          this.log.warn('Error parsing JSON response for properties: ' + property_list.join(', '));
+          this.log.debug('Error Message: ' + e);
+          return ERROR_DELAY;
         }
       } else {
         const auth_header = await this.ayla_api.auth_header();
         const resp = await this.ayla_api.makeRequest('GET', url, null, auth_header);
         const properties = JSON.parse(resp.response);
         try {
-          if (resp.status !== 200) {
-            this.log.error('Error getting property values.');
+          if (resp.status === 429) {
+            this.log.debug('API Error: Too many requests');
+            this.log.debug('Waiting an extra 30 seconds before retrying...');
+            return TIMEOUT_DELAY;
+          } else if (resp.ok !== true) {
+            this.log.warn('Error getting property values.');
             if (properties['error'] !== undefined) {
-              this.log.error(`Message: ${JSON.stringify(properties['error'])}`);
+              this.log.debug(`Error Message: ${JSON.stringify(properties['error'])}`);
             }
             const status = await this.ayla_api.attempt_refresh(attempt);
             if (!status && attempt === 1) {
-              return;
+              return ERROR_DELAY;
             } else {
-              await this.update(property_list, attempt + 1);
-              return;
+              return await this.update(property_list, attempt + 1);
             }
+          } else {
+            this._do_update(full_update, properties);
+            return 0;
           }
-          this._do_update(full_update, properties);
         } catch {
-          this.log.error('Error parsing JSON response for properties.');
+          this.log.warn('Error parsing JSON response for properties.');
+          return ERROR_DELAY;
         }
       }
     } catch (e) {
       this.log.debug('Promise Rejected with updating properties.');
-      this.log.debug('Error:', e);
+      return ERROR_DELAY;
     }
   }
 
