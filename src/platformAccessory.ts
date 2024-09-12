@@ -62,26 +62,27 @@ export class SharkIQAccessory {
 
     this.updateStates();
 
-    // // Monitor vacuum state
-    // this.monitorVacuumState().then(() => {
-    //   this.monitorVacuumStateInterval();
-    // })
-    //   .catch(() => {
-    //     this.log.debug('Promise Rejected with first interval update.');
-    //     this.monitorVacuumStateInterval();
-    //   });
+    // Retrieve vacuum states
+    this.retrieveVacuumStates().then(() => {
+      this.retrieveVacuumStateInterval();
+    })
+      .catch(() => {
+        this.log.debug('Promise Rejected with first interval update.');
+        this.retrieveVacuumStateInterval();
+      });
   }
 
-  // // Monitor vacuum state interval function
-  // async monitorVacuumStateInterval(): Promise<void> {
-  //   setInterval(async () => {
-  //     await this.monitorVacuumState()
-  //       .catch(() => {
-  //         this.log.debug('Promise Rejected with interval update.');
-  //       });
-  //   }, this.dockedUpdateInterval + this.dockedDelay);
-  // }
+  // Retrieve vacuum states interval function
+  async retrieveVacuumStateInterval(): Promise<void> {
+    setInterval(async () => {
+      await this.retrieveVacuumStates()
+        .catch(() => {
+          this.log.debug('Promise Rejected with interval update.');
+        });
+    }, this.dockedUpdateInterval + this.dockedDelay);
+  }
 
+  // Retrieve docked status
   async retrieveDockedStatus(): Promise<boolean> {
     this.log.debug('Triggering GET Docked Status');
     await this.device.update(Properties.DOCKED_STATUS);
@@ -97,81 +98,64 @@ export class SharkIQAccessory {
     return vacuumDocked;
   }
 
+  // Retrieve operating mode
   async retrieveOperatingMode(): Promise<void> {
-    await this.device.update(Properties.OPERATING_MODE);
-    // .then((delay) => {
-    //   this.dockedDelay = delay;
-    // });
+    this.log.debug('Triggering GET Operating Mode');
+    await this.device.update(Properties.OPERATING_MODE)
+      .then((delay) => {
+        this.dockedDelay = delay;
+      });
   }
 
+  // Retrieve power mode
   async retrievePowerMode(): Promise<void> {
-    await this.device.update(Properties.POWER_MODE);
-    // .then((delay) => {
-    //   this.dockedDelay = delay;
-    // });
-    //     if (!vacuumDocked) {
-    //       const mode = this.device.operating_mode();
-    //       if (mode === OperatingModes.START || mode === OperatingModes.STOP) {
-    //         await this.device.update(Properties.POWER_MODE)
-    //           .catch(() => {
-    //             this.log.debug('Promise Rejected with power mode update.');
-    //           });
-    //         const service = this.service;
-    //         const platform = this.platform;
-    //         await this.getFanSpeed()
-    //           .then((power_mode) => {
-    //             service.updateCharacteristic(platform.Characteristic.RotationSpeed, power_mode);
-    //           })
-    //           .catch(() => {
-    //             this.log.debug('Promise Rejected with getting power mode.');
-    //           });
-    //       }
-    //     }
+    this.log.debug('Triggering GET Power Mode');
+    await this.device.update(Properties.POWER_MODE)
+      .then((delay) => {
+        this.dockedDelay = delay;
+      });
   }
 
-  // // Monitor vacuum state function
-  // async retrieveVacuumStates(): Promise<void> {
-  //   let vacuumDocked = false;
+  // Monitor vacuum state function
+  async retrieveVacuumStates(): Promise<void> {
+    this.log.debug('Triggering GET Vacuum States');
+    let vacuumDocked = false;
 
-  //   await this.device.update([Properties.DOCKED_STATUS, Properties.OPERATING_MODE, Properties.POWER_MODE])
-  //     .then((delay) => {
-  //       this.dockedDelay = delay;
-  //     });
+    await this.device.update([Properties.DOCKED_STATUS, Properties.OPERATING_MODE, Properties.POWER_MODE])
+      .then((delay) => {
+        this.dockedDelay = delay;
+      });
 
-  //   const docked_status = this.device.docked_status();
-  //   if(!this.invertDockedStatus) {
-  //     vacuumDocked = docked_status === 1;
-  //   } else {
-  //     vacuumDocked = docked_status !== 1;
-  //   }
-  //   await this.updateItems(vacuumDocked)
-  //     .catch(() => {
-  //       this.log.debug('Promise Rejected with running docked update.');
-  //     });
+    const docked_status = this.device.docked_status();
+    if(!this.invertDockedStatus) {
+      vacuumDocked = docked_status === 1;
+    } else {
+      vacuumDocked = docked_status !== 1;
+    }
+    const power_mode = this.device.power_mode();
+    const mode = this.device.operating_mode();
+    const vacuumActive = mode === OperatingModes.START || mode === OperatingModes.STOP;
+    this.service.updateCharacteristic(this.platform.Characteristic.Active, vacuumActive);
+    if (vacuumActive) {
+      if (power_mode === PowerModes.MAX) {
+        this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, 90);
+      } else if (power_mode === PowerModes.ECO) {
+        this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, 30);
+      } else {
+        this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, 60);
+      }
+      if (mode === OperatingModes.STOP) {
+        this.vacuumPausedService.updateCharacteristic(this.platform.Characteristic.On, true);
+      } else {
+        this.vacuumPausedService.updateCharacteristic(this.platform.Characteristic.On, false);
+      }
+    } else {
+      this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, 0);
+    }
+    this.dockedStatusService.updateCharacteristic(this.platform.Characteristic.ContactSensorState, vacuumDocked);
 
-
-  //   this.dockedStatusService.updateCharacteristic(this.platform.Characteristic.ContactSensorState, vacuumDocked);
-
-  //   this.log.debug('Triggering Vacuum Docked:', vacuumDocked);
-  // }
-
-  // // Update docked, active, and paused state
-  // async updateItems(vacuumDocked: boolean): Promise<void> {
-  //   if (!vacuumDocked) {
-  //     const mode = this.device.operating_mode();
-  //     if (mode === OperatingModes.START || mode === OperatingModes.STOP) {
-  //       const service = this.service;
-  //       const platform = this.platform;
-  //       await this.getFanSpeed()
-  //         .then((power_mode) => {
-  //           service.updateCharacteristic(platform.Characteristic.RotationSpeed, power_mode);
-  //         })
-  //         .catch(() => {
-  //           this.log.debug('Promise Rejected with getting power mode.');
-  //         });
-  //     }
-  //   }
-  // }
+    this.log.debug('Vacuum Docked:', vacuumDocked, 'Vacuum Active:', vacuumActive, 'Power Mode:', power_mode);
+  }
 
   // Update paused and active state on switch
   updateStates(): void {
@@ -205,7 +189,7 @@ export class SharkIQAccessory {
 
   // Set paused state
   async setPaused(value: CharacteristicValue): Promise<void> {
-    this.log.debug('Triggering SET Paused');
+    this.log.debug('Triggering SET Paused. Paused:', value);
 
     const mode = this.device.operating_mode();
     if (mode === OperatingModes.START || mode === OperatingModes.STOP) {
@@ -278,8 +262,7 @@ export class SharkIQAccessory {
 
   // Set vacuum power from UI (and start/stop vacuum if needed)
   async setFanSpeed(value: CharacteristicValue): Promise<void> {
-    this.log.debug('Triggering SET Fan Speed');
-    this.log.debug('Value:', value);
+    this.log.debug('Triggering SET Fan Speed. Value:', value);
 
     let power_mode = PowerModes.NORMAL;
     if (value === 30) {
