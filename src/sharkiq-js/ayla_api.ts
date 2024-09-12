@@ -242,7 +242,7 @@ class AylaApi {
   }
 
   // List device objects
-  async list_devices(attempt = 1): Promise<object[]> {
+  async list_devices(attempt = 0): Promise<object[]> {
     const url = `${this.europe ? global_vars.EU_DEVICE_URL : global_vars.DEVICE_URL}/apiv1/devices.json`;
     try {
       const auth_header = await this.auth_header();
@@ -250,7 +250,7 @@ class AylaApi {
       if (resp.status === 401) {
         this.log.error('API Error: Unauthorized');
         const status = await this.attempt_refresh(attempt);
-        if (!status && attempt === 2) {
+        if (!status && attempt === 1) {
           return [];
         } else {
           return await this.list_devices(attempt + 1);
