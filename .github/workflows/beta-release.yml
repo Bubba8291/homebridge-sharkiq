@@ -1,6 +1,8 @@
 name: Node-CI Beta
 
 on:
+  push:
+    branches: [beta-*.*.*]
   release:
     types: [prereleased]
   workflow_dispatch:
@@ -24,7 +26,7 @@ jobs:
     uses: ./.github/workflows/npm-publish.yml
     with:
       tag: 'beta'
-      dynamically_adjust_version: true
+      dynamically_adjust_version: ${{ github.event.release.prerelease == false }}
       npm_version_command: 'pre'
       pre_id: 'beta'
     secrets:

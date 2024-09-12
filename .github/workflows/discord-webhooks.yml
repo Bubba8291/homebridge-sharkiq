@@ -49,7 +49,7 @@ jobs:
           footer_title: ${{ inputs.footer_title }}
           footer_icon_url: ${{ inputs.footer_icon_url || 'https://raw.githubusercontent.com/homebridge/branding/latest/logos/homebridge-color-round-stylized.png'}}
           footer_timestamp: ${{ inputs.footer_timestamp || true }}
-    
+
       - name: Pre-Release
         if: ${{ github.event.release.prerelease == true }}
         uses: SethCohen/github-releases-to-discord@v1.13.1

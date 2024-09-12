@@ -15,4 +15,4 @@ jobs:
       token: ${{ secrets.GITHUB_TOKEN }}
   lint:
     needs: build_and_test
-    uses: ./.github/workflows/eslint.yml@latest
+    uses: ./.github/workflows/eslint.yml
