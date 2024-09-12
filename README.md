@@ -7,8 +7,6 @@
 
 </span>
 
-### 2024-08-19: Shark uses a new login method. Starting in v1.2.0, homebridge-sharkiq has switched to the new method. See Step 2 to update the login for your instance.
-
 A new homebridge plugin for SharkIQ Vacuums.
 
 Contributions are always welcome. I used the [sharkiq](https://github.com/JeffResc/sharkiq/) python module as a reference for creating the javascript wrapper to control SharkIQ Vacuums.
@@ -32,36 +30,30 @@ Configure Homebridge. The config file for SharkIQ should include:
         {
             "name": "SharkIQ",
             "platform": "SharkIQ",
-            "oAuthCode": "[OAuth Code for Shark Login]",
+            "email": "[Shark Clean Account Email]",
+            "password": "[Shark Clean Account Password]",
+            "oAuthCode": "[Optional. Use for manually obtaining credentials]",
             "vacuums": [
                 "[Shark Vacuum DSN]",
                 "..."
             ],
             "europe": false,
             "invertDockedStatus": false,
-            "dockedUpdateInterval": 5000
+            "dockedUpdateInterval": 30000
         }
     ]
 }
 ```
 
-The OAuth Code value is for creating and storing the login for the plugin. Here is how to sign in.
-1. Run Homebridge with the updated plugin version.
-2. Open the Homebridge logs
-3. Open the URL in the console printed by homebridge-sharkiq. Safari will not work due to the way Safari handles the results of the login
-4. Before you login, open up developer tools in your browser (inspect element), and navigate to the network tab
-5. Enter your login info, and press continue
-6. Open the request with the uri of `/authorize/resume` that shows up and view the headers
-7. Search `com.sharkninja.shark` in the headers
-8. Copy the code in between `code=` and `&`. for example in `com.sharkninja.shark://login.sharkninja.com/ios/com.sharkninja.shark/callback?code=abcdefghijkl&state=`, `abcdefghijkl` is the code that needs to be copied
-9. Open your Homebridge configuration, and paste the `code` value in the OAuth Code config option
-10. Restart Homebridge
+The email and password is your Shark Clean account you used to setup the vacuum. The Vacuums array is a list of your vacuum's device serial numbers (DSN). If you only have one vacuum, just include the one's DSN. The DSN(s) can be found in the SharkClean mobile app.
+
+If you would like to manually obtain your Shark Clean credentials without using your email and password, you can obtain a OAuth code instead. Refer to the `OAuth Code Login Method` section.
 
 The Vacuums array is a list of your vacuum's device serial numbers (DSN). If you only have one vacuum, just include the one's DSN. The DSN(s) can be found in the SharkClean mobile app.
 
 If you are in Europe, set the `europe` config value to `true`. SharkClean has separate servers for the U.S. and Europe. The default value is `false`, which connects to the U.S. server.
 
-The default interval between updating the docked status is 5 seconds (5000 ms). To change the docked status interval, add `dockedUpdateInterval` to your config. Value is in milliseconds.
+The default interval between updating the docked status is 30 seconds (30000 ms). To change the docked status interval, add `dockedUpdateInterval` to your config. Value is in milliseconds. If the interval is too low, you have the risk of your account being rate limited.
 
 ## Features
 
@@ -71,6 +63,19 @@ The default interval between updating the docked status is 5 seconds (5000 ms). 
     - The sensor will display as "opened" when the vacuum is docked and "closed" when the vacuum is not docked
     - Set `invertDockedStatus` to `true` to display as "closed" when the vacuum is docked and "opened" when the vacuum is not docked
 - Pause switch for pausing the vacuum while it's running
+
+### OAuth Code Login Method
+The OAuth Code value is for creating and storing the login for the plugin. Here is how to sign in with this method.
+1. Run Homebridge with the latest plugin version.
+2. Open the Homebridge logs
+3. Open the URL in the console printed by homebridge-sharkiq. Safari will not work due to the way Safari handles the results of the login
+4. Before you login, open up developer tools in your browser (inspect element), and navigate to the network tab
+5. Enter your login info, and press continue
+6. Open the request with the uri of `/authorize/resume` that shows up and view the headers
+7. Search `com.sharkninja.shark` in the headers
+8. Copy the code in between `code=` and `&`. for example in `com.sharkninja.shark://login.sharkninja.com/ios/com.sharkninja.shark/callback?code=abcdefghijkl&state=`, `abcdefghijkl` is the code that needs to be copied
+9. Open your Homebridge configuration, and paste the `code` value in the OAuth Code config option
+10. Restart Homebridge
 
 ## Notes
 
