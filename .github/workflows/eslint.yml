@@ -1,0 +1,31 @@
+name: ESLint
+
+on:
+  workflow_call:
+    inputs:
+      node_version:
+        description: 'Defines the node version setup to run the linter'
+        default: 18
+        required: false
+        type: number
+
+jobs:
+  eslint:
+    name: ESLint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: install
+        run: npm ci
+
+      - name: eslint
+        run: npm run lint --if-present
+        env:
+          CI: true

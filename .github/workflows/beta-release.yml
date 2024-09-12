@@ -1,0 +1,40 @@
+name: Node-CI Beta
+
+on:
+  release:
+    types: [prereleased]
+  workflow_dispatch:
+
+jobs:
+  build_and_test:
+    uses: ./.github/workflows/nodejs-build-and-test.yml
+    with:
+      enable_coverage: true
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
+  lint:
+    needs: build_and_test
+    uses: ./.github/workflows/eslint.yml
+
+  publish:
+    needs: lint
+
+    if: ${{ github.repository == 'Bubba8291/homebridge-sharkiq' }}
+
+    uses: ./.github/workflows/npm-publish.yml
+    with:
+      tag: 'beta'
+      dynamically_adjust_version: true
+      npm_version_command: 'pre'
+      pre_id: 'beta'
+    secrets:
+      npm_auth_token: ${{ secrets.NPM_TOKEN }}
+
+  github-releases-to-discord:
+    needs: publish
+
+    if: ${{ github.repository == 'Bubba8291/homebridge-sharkiq' && github.event.release.prerelease == true }}
+
+    uses: ./.github/workflows/discord-webhooks.yml
+    with:
+      footer_title: "SharkIQ"
