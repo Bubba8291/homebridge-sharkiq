@@ -58,12 +58,18 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
     const storagePath = this.api.user.storagePath();
     const auth_file = join(storagePath, global_vars.FILE);
     const oauth_file = join(storagePath, global_vars.OAUTH.FILE);
-    const email = this.config.email;
-    const password = this.config.password;
+    const oAuthCode = this.config.oAuthCode || '';
+    const email = this.config.email || '';
+    const password = this.config.password || '';
     if (!email || typeof email !== 'string' || !password || typeof password !== 'string') {
-      return Promise.reject('Error: Email and password must be present in the config');
+      this.log.warn('Email and password not present in the config. Using OAuth code login method instead.');
+      this.log.info('Please provide email and password in the config if you want to use email/password login method.');
+    } else if (email !== '' && password === '') {
+      return Promise.reject('Password must be present in the config if email is provided.');
+    } else if (email === '' && password !== '') {
+      return Promise.reject('Email must be present in the config if password is provided.');
     }
-    const login = new Login(this.log, auth_file, oauth_file, email, password);
+    const login = new Login(this.log, auth_file, oauth_file, email, password, oAuthCode);
     try {
       await login.checkLogin();
       const ayla_api = get_ayla_api(auth_file, this.log, europe);
@@ -71,7 +77,7 @@ export class SharkIQPlatform implements DynamicPlatformPlugin {
       const devices = await ayla_api.get_devices();
       return devices;
     } catch (error) {
-      return Promise.reject(`${error}`);
+      return Promise.reject(error);
     }
   };
 

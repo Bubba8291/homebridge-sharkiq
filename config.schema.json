@@ -13,12 +13,17 @@
       "email": {
         "title": "SharkClean Account Email",
         "type": "string",
-        "required": true
+        "required": false
       },
       "password": {
         "title": "SharkClean Account Password",
         "type": "string",
-        "required": true
+        "required": false
+      },
+      "oAuthCode": {
+        "title": "SharkClean OAuth Code",
+        "type": "string",
+        "required": false
       },
       "vacuums": {
         "title": "SharkClean Vacuum Devicess",
@@ -58,6 +63,19 @@
       "items": [
         "email",
         "password"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "SharkIQ OAuth Info",
+      "expandable": true,
+      "expanded": false,
+      "items": [
+        {
+          "type": "help",
+          "helpvalue": "<h5>OAuth Code</h5><em class='primary-text'>Enter the OAuth code you received from SharkClean. This is used for manually obtaining credentials.</em>"
+        },
+        "oAuthCode"
       ]
     },
     {

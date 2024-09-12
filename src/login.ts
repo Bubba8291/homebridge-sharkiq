@@ -10,8 +10,6 @@ import { addSeconds } from './utils';
 import { OAuthData } from './type';
 
 export class Login {
-  private oAuthCode = '';
-
   public log: Logger;
   public auth_file: string;
   public oauth_file: string;
@@ -19,12 +17,14 @@ export class Login {
   public password: string;
   public app_id: string;
   public app_secret: string;
+  public oAuthCode: string;
 
   constructor(log: Logger,
     auth_file: string,
     oauth_file: string,
     email: string,
     password: string,
+    oAuthCode: string,
     app_id = global_vars.SHARK_APP_ID,
     app_secret = global_vars.SHARK_APP_SECRET,
   ) {
@@ -33,6 +33,7 @@ export class Login {
     this.oauth_file = oauth_file;
     this.email = email;
     this.password = password;
+    this.oAuthCode = oAuthCode;
     this.app_id = app_id;
     this.app_secret = app_secret;
   }
@@ -46,18 +47,41 @@ export class Login {
       const email = this.email;
       const password = this.password;
 
-      try {
-        const url = await generateURL(this.oauth_file);
-
-        await this.login(email, password, url);
+      if (email === '' && password === '') {
         if (this.oAuthCode === '') {
-          return Promise.reject('Error: No OAuth code found');
+          try {
+            const url = await generateURL(this.oauth_file);
+            return Promise.reject(`Please login to Shark using the following URL: ${url}`);
+          } catch (error) {
+            return Promise.reject(error);
+          }
         } else {
-          const ouath_data = await getOAuthData(this.oauth_file);
-          await this.loginCallback(this.oAuthCode, ouath_data);
+          try {
+            const ouath_data = await getOAuthData(this.oauth_file);
+            try {
+              await this.loginCallback(this.oAuthCode, ouath_data);
+            } catch (error) {
+              return Promise.reject(error);
+            }
+          } catch (error) {
+            this.log.warn('OAuth data not found with OAuth code set. Please clear the OAuth code and try again.');
+            return Promise.reject(error);
+          }
         }
-      } catch (error) {
-        return Promise.reject(`${error}`);
+      } else {
+        try {
+          const url = await generateURL(this.oauth_file);
+
+          await this.login(email, password, url);
+          if (this.oAuthCode === '') {
+            return Promise.reject('Error: No OAuth code found');
+          } else {
+            const ouath_data = await getOAuthData(this.oauth_file);
+            await this.loginCallback(this.oAuthCode, ouath_data);
+          }
+        } catch (error) {
+          return Promise.reject(error);
+        }
       }
     }
   }
