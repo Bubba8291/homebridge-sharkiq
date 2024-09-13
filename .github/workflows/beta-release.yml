@@ -3,8 +3,6 @@ name: Node-CI Beta
 on:
   push:
     branches: [beta-*.*.*]
-  release:
-    types: [prereleased]
   workflow_dispatch:
 
 jobs:
@@ -31,14 +29,3 @@ jobs:
       pre_id: 'beta'
     secrets:
       npm_auth_token: ${{ secrets.NPM_TOKEN }}
-
-  github-releases-to-discord:
-    needs: lint
-
-    if: ${{ github.repository == 'Bubba8291/homebridge-sharkiq' && github.event.release.prerelease == true }}
-
-    uses: ./.github/workflows/discord-webhooks.yml
-    with:
-      footer_title: "SharkIQ"
-    secrets:
-      DISCORD_WEBHOOK_URL_BETA: ${{ secrets.DISCORD_WEBHOOK_URL_BETA }}

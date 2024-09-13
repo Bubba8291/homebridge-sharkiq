@@ -1,0 +1,16 @@
+name: Beta Release Webhook
+
+on:
+  release:
+    types: [prereleased]
+  workflow_dispatch:
+
+jobs:
+  github-releases-to-discord:
+    if: ${{ github.repository == 'Bubba8291/homebridge-sharkiq' }}
+
+    uses: ./.github/workflows/discord-webhooks.yml
+    with:
+      footer_title: "SharkIQ"
+    secrets:
+      DISCORD_WEBHOOK_URL_BETA: ${{ secrets.DISCORD_WEBHOOK_URL_BETA }}
