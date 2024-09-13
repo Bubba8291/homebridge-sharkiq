@@ -21,12 +21,12 @@ jobs:
   publish:
     needs: lint
 
-    if: ${{ github.repository == 'Bubba8291/homebridge-sharkiq' }}
+    if: ${{ github.repository == 'Bubba8291/homebridge-sharkiq' && github.event.release.prerelease == false }}
 
     uses: ./.github/workflows/npm-publish.yml
     with:
       tag: 'beta'
-      dynamically_adjust_version: ${{ github.event.release.prerelease == false }}
+      dynamically_adjust_version: true
       npm_version_command: 'pre'
       pre_id: 'beta'
     secrets:
