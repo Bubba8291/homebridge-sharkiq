@@ -33,7 +33,7 @@ jobs:
       npm_auth_token: ${{ secrets.NPM_TOKEN }}
 
   github-releases-to-discord:
-    needs: publish
+    needs: lint
 
     if: ${{ github.repository == 'Bubba8291/homebridge-sharkiq' && github.event.release.prerelease == true }}
 
