@@ -40,3 +40,5 @@ jobs:
     uses: ./.github/workflows/discord-webhooks.yml
     with:
       footer_title: "SharkIQ"
+    secrets:
+      DISCORD_WEBHOOK_URL_BETA: ${{ secrets.DISCORD_WEBHOOK_URL_BETA }}
