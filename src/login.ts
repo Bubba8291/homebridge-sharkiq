@@ -47,6 +47,8 @@ export class Login {
       const email = this.email;
       const password = this.password;
 
+      const architecure = process.arch;
+      const platform = process.platform;
       if (email === '' && password === '') {
         if (this.oAuthCode === '') {
           try {
@@ -69,6 +71,11 @@ export class Login {
           }
         }
       } else {
+        if (platform === 'linux' && architecure === 'arm64') {
+          this.log.warn(`${platform} ${architecure} architecture does not support automatic login. Please use OAuth code login method.`);
+          const url = await generateURL(this.oauth_file);
+          return Promise.reject(`Please login to Shark using the following URL: ${url}`);
+        }
         try {
           const url = await generateURL(this.oauth_file);
 
