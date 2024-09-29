@@ -1,0 +1,36 @@
+name: Node Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+jobs:
+  build_and_test:
+    uses: ./.github/workflows/nodejs-build-and-test.yml
+    with:
+      enable_coverage: true
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    needs: build_and_test
+
+    if: ${{ github.repository == 'Bubba8291/homebridge-sharkiq' }}
+
+    uses: ./.github/workflows/npm-publish.yml
+    secrets:
+      npm_auth_token: ${{ secrets.npm_token }}
+
+  github-releases-to-discord:
+    needs: publish
+
+    if: ${{ github.repository == 'Bubba8291/homebridge-sharkiq' }}
+
+    uses: ./.github/workflows/discord-webhooks.yml
+    with:
+      footer_title: "SharkIQ"
+    secrets:
+      DISCORD_WEBHOOK_URL_LATEST: ${{ secrets.DISCORD_WEBHOOK_URL_LATEST }}
+      DISCORD_WEBHOOK_URL_BETA: ${{ secrets.DISCORD_WEBHOOK_URL_BETA }}
