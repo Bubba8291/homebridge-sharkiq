@@ -1,10 +1,30 @@
+# This is a basic workflow to help you get started with Actions
+
 name: Discord Webhooks
 
 # Controls when the workflow will run
 on:
   workflow_call:
     inputs:
+      status:
+        required: false
+        type: string
+      content:
+        required: false
+        type: string
+      title:
+        required: false
+        type: string
+      description:
+        required: false
+        type: string
+      image:
+        required: false
+        type: string
       color:
+        required: false
+        type: string
+      url:
         required: false
         type: string
       username:
@@ -13,51 +33,45 @@ on:
       avatar_url:
         required: false
         type: string
-      footer_title:
-        required: true
-        type: string
-      pre_release_footer_title:
+      nofail:
         required: false
-        type: string
-      footer_icon_url:
+        type: boolean
+      noprefix:
         required: false
-        type: string
-      footer_timestamp:
+        type: boolean
+      nodetail:
         required: false
-        type: string
+        type: boolean
+      nocontext:
+        required: false
+        type: boolean
+      notimestamp:
+        required: false
+        type: boolean
     secrets:
-      DISCORD_WEBHOOK_URL_LATEST:
-        required: false
-      DISCORD_WEBHOOK_URL_BETA:
-        required: false
+      DISCORD_WEBHOOK:
+        required: true
 
 jobs:
   github-releases-to-discord:
     runs-on: ubuntu-latest
-    name: GitHub Releases to Discord
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Latest Release
-        if: ${{ github.event.release.prerelease == false }}
-        uses: SethCohen/github-releases-to-discord@v1.13.1
+      - name: Discord notification
+        uses: sarisia/actions-status-discord@v1
         with:
-          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL_LATEST }}
-          color: ${{ inputs.color || '490899'}}
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: ${{ inputs.status || 'Success'}}
+          content: ${{ inputs.content || ''}}
+          title: ${{ inputs.title || ''}}
+          description: |
+            ${{ inputs.description || ''}}
+          image: ${{ inputs.image || ''}}
+          color: ${{ inputs.color || '4726621'}}
+          url: ${{ inputs.url || 'https://homebridge.io'}}
           username: ${{ inputs.username || 'Bubba8291'}}
           avatar_url: ${{ inputs.avatar_url || 'https://raw.githubusercontent.com/homebridge/branding/latest/logos/homebridge-color-round-stylized.png'}}
-          footer_title: ${{ inputs.footer_title }}
-          footer_icon_url: ${{ inputs.footer_icon_url || 'https://raw.githubusercontent.com/homebridge/branding/latest/logos/homebridge-color-round-stylized.png'}}
-          footer_timestamp: ${{ inputs.footer_timestamp || true }}
-
-      - name: Pre-Release
-        if: ${{ github.event.release.prerelease == true }}
-        uses: SethCohen/github-releases-to-discord@v1.13.1
-        with:
-          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL_BETA }}
-          color: ${{ inputs.color || '490899'}}
-          username: ${{ inputs.username || 'Bubba8291'}}
-          avatar_url: ${{ inputs.avatar_url || 'https://raw.githubusercontent.com/homebridge/branding/latest/logos/homebridge-color-round-stylized.png'}}
-          footer_title: "Pre-Release: ${{ inputs.pre_release_footer_title || inputs.footer_title }}"
-          footer_icon_url: ${{ inputs.footer_icon_url || 'https://raw.githubusercontent.com/homebridge/branding/latest/logos/homebridge-color-round-stylized.png'}}
-          footer_timestamp: ${{ inputs.footer_timestamp || true }}
+          nofail: ${{ inputs.nofail || true}}
+          noprefix: ${{ inputs.noprefix || false}}
+          nodetail: ${{ inputs.nodetail || false}}
+          nocontext: ${{ inputs.nocontext || false}}
+          notimestamp: ${{ inputs.notimestamp || false}}
