@@ -87,6 +87,10 @@ export class Login {
             await this.loginCallback(this.oAuthCode, ouath_data);
           }
         } catch (error) {
+          this.log.warn('If you received the error Syntax error: Unterminated quoted string, please use the OAuth code login method. ' +
+            'This is a known issue with arm64 devices like Raspberry Pi.');
+          this.log.info('To login using the OAuth code method, ' +
+            'please remove the email and password from your Homebridge configuration and restart Homebridge.');
           return Promise.reject(error);
         }
       }
