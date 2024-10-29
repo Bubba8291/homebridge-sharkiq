@@ -45,6 +45,13 @@ Configure Homebridge. The config file for SharkIQ should include:
 }
 ```
 
+
+# Important
+
+You may be prompted to use the manual OAuth login method. In order to use the manual OAuth login method, you must remove the email and password values in your configuration first.
+
+#
+
 The email and password is your Shark Clean account you used to setup the vacuum. The Vacuums array is a list of your vacuum's device serial numbers (DSN). If you only have one vacuum, just include the one's DSN. The DSN(s) can be found in the SharkClean mobile app.
 
 If you would like to manually obtain your Shark Clean credentials without using your email and password, you can obtain a OAuth code instead. Refer to the `OAuth Code Login Method` section.
