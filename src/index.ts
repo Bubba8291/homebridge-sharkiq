@@ -1,8 +1,9 @@
-import { API } from 'homebridge';
+import type { API } from 'homebridge'
 
-import { PLATFORM_NAME } from './settings';
-import { SharkIQPlatform } from './platform';
+import { SharkIQPlatform } from './platform.js'
+import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js'
 
-export = (api: API): void => {
-  api.registerPlatform(PLATFORM_NAME, SharkIQPlatform);
-};
+// Register our platform with homebridge.
+export default (api: API): void => {
+  api.registerPlatform(PLUGIN_NAME, PLATFORM_NAME, SharkIQPlatform)
+}

@@ -1,25 +1,25 @@
 {
   "compilerOptions": {
-    "target": "ES2018", // ~node10
-    "module": "commonjs",
+    "target": "ES2022",
     "lib": [
-      "es2015",
-      "es2016",
-      "es2017",
-      "es2018",
-      "dom"
+      "DOM",
+      "ES2022"
     ],
+    "rootDir": "src",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noImplicitAny": false,
     "declaration": true,
     "declarationMap": true,
+    "outDir": "dist",
     "sourceMap": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true,
+    "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "noImplicitAny": false
+    "forceConsistentCasingInFileNames": true
   },
   "include": [
-    "src/"
+    "src"
   ],
   "exclude": [
     "**/*.spec.ts"
