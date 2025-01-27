@@ -3,7 +3,7 @@ const PowerModes = {
   ECO: 1,
   NORMAL: 0,
   MAX: 2,
-};
+}
 
 // Operating Modes ENUM
 const OperatingModes = {
@@ -11,7 +11,7 @@ const OperatingModes = {
   PAUSE: 1,
   START: 2,
   RETURN: 3,
-};
+}
 
 // Common properties for Vacuum ENUM
 const Properties = {
@@ -35,7 +35,7 @@ const Properties = {
   RSSI: 'RSSI',
   DEVICE_MODEL_NUMBER: 'Device_Model_Number',
   DEVICE_SERIAL_NUMBER: 'Device_Serial_Num',
-};
+}
 
 // Error messages enum
 const ERROR_MESSAGES = {
@@ -54,6 +54,6 @@ const ERROR_MESSAGES = {
   14: 'Magnetic strip error',
   16: 'Top bumper is stuck',
   18: 'Wheel encoder error',
-};
+}
 
-export { PowerModes, OperatingModes, Properties, ERROR_MESSAGES };
+export { ERROR_MESSAGES, OperatingModes, PowerModes, Properties }

@@ -1,8 +1,11 @@
 {
-  "watch": ["src"],
-  "ext": "ts",
+  "watch": [
+    "src",
+    "config.schema.json"
+  ],
+  "ext": "ts, html, json",
   "ignore": [],
-  "exec": "tsc && homebridge -I -D",
+  "exec": "DEBUG= tsc && rsync ./src/homebridge-ui/public/index.html ./dist/homebridge-ui/public/ && homebridge -T -D -P -I -U ~/.homebridge-dev ..",
   "signal": "SIGTERM",
   "env": {
     "NODE_OPTIONS": "--trace-warnings"
